@@ -64,5 +64,14 @@ service cloud.firestore {
          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lastModified']))
       );
     }
+
+    // ── Kunden (Clients) ───────────────────────────────────────────────────
+    match /artifacts/{appId}/public/data/clients/{clientId} {
+      // Nur Admin & Agentur dürfen Kunden sehen und verwalten
+      allow read: if request.auth != null &&
+        get(/databases/$(database)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid)).data.role in ['Admin', 'Agentur'];
+      allow create, update, delete: if request.auth != null &&
+        get(/databases/$(database)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid)).data.role in ['Admin', 'Agentur'];
+    }
   }
 }
