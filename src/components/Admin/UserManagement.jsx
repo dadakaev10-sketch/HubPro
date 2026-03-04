@@ -1,9 +1,28 @@
 import { useState, useEffect } from 'react'
 import { Users, Plus, Shield, Briefcase, User, Trash2, X, Eye, EyeOff, CheckCircle } from 'lucide-react'
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore'
+import { collection, getDocs, deleteDoc, doc, setDoc } from 'firebase/firestore'
 import { db, DB_BASE_PATH, isFirebaseConfigured } from '../../config/firebase'
-import { doc as firestoreDoc, setDoc } from 'firebase/firestore'
+import { getApps, initializeApp } from 'firebase/app'
+import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth'
 import { useApp } from '../../contexts/AppContext'
+
+// Modul-Level Cache: Secondary App für User-Erstellung (vermeidet Logout des Admins)
+function getSecondaryAuth() {
+  const name = 'hubpro-user-creation'
+  const existing = getApps().find(a => a.name === name)
+  const app = existing ?? initializeApp(
+    {
+      apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+      appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    },
+    name
+  )
+  return getAuth(app)
+}
 
 const ROLES = { Admin: 'Admin', Agentur: 'Agentur', Kunde: 'Kunde' }
 
@@ -21,8 +40,6 @@ export default function UserManagement() {
   const [submitting, setSubmitting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'Agentur', avatar: '' })
-
-  const apiKey = import.meta.env.VITE_FIREBASE_API_KEY
 
   useEffect(() => {
     loadUsers()
@@ -48,34 +65,15 @@ export default function UserManagement() {
     setSubmitting(true)
 
     try {
-      // Firebase Auth REST API — erstellt User ohne aktuelle Session zu beeinflussen
-      const res = await fetch(
-        `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: form.email,
-            password: form.password,
-            returnSecureToken: false,
-          }),
-        }
-      )
-      const data = await res.json()
+      // Secondary Firebase Auth App → erstellt User ohne Admin-Session zu beeinflussen
+      const secondaryAuth = getSecondaryAuth()
+      const { user } = await createUserWithEmailAndPassword(secondaryAuth, form.email, form.password)
+      await signOut(secondaryAuth) // Secondary-Session sofort beenden
 
-      if (data.error) {
-        const messages = {
-          'EMAIL_EXISTS': 'Diese E-Mail wird bereits verwendet.',
-          'WEAK_PASSWORD : Password should be at least 6 characters': 'Passwort muss mindestens 6 Zeichen haben.',
-        }
-        throw new Error(messages[data.error.message] || data.error.message)
-      }
-
-      const uid = data.localId
-      const avatar = form.avatar || form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+      const avatar = form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 
       // User-Profil in Firestore speichern
-      await setDoc(firestoreDoc(db, `${DB_BASE_PATH}/users`, uid), {
+      await setDoc(doc(db, `${DB_BASE_PATH}/users`, user.uid), {
         name: form.name,
         email: form.email,
         role: form.role,
@@ -88,7 +86,16 @@ export default function UserManagement() {
       setShowForm(false)
       loadUsers()
     } catch (err) {
-      addNotification({ type: 'error', message: err.message })
+      const errorMessages = {
+        'auth/email-already-in-use': 'Diese E-Mail wird bereits verwendet.',
+        'auth/weak-password': 'Passwort muss mindestens 6 Zeichen haben.',
+        'auth/invalid-email': 'Ungültige E-Mail-Adresse.',
+        'auth/operation-not-allowed': 'E-Mail/Passwort-Login ist in Firebase nicht aktiviert.',
+        'auth/network-request-failed': 'Netzwerkfehler — bitte Verbindung prüfen.',
+      }
+      const msg = errorMessages[err.code] || err.message
+      addNotification({ type: 'error', message: msg })
+      console.error('[UserManagement] Fehler:', err.code, err.message)
     }
     setSubmitting(false)
   }
