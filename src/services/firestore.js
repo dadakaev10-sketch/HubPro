@@ -38,7 +38,7 @@ export const socialPostsService = {
   async getAll() {
     if (!isFirebaseConfigured) return socialPosts
     const snap = await getDocs(query(colRef('social_posts'), orderBy('createdAt', 'desc')))
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    return snap.docs.map(d => ({ ...d.data(), id: d.id }))
   },
 
   // Echtzeit-Listener für Live-Updates
@@ -49,15 +49,17 @@ export const socialPostsService = {
     }
     const q = query(colRef('social_posts'), orderBy('createdAt', 'desc'))
     return onSnapshot(q, snap => {
-      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      callback(snap.docs.map(d => ({ ...d.data(), id: d.id })))
     })
   },
 
   // Neuen Post erstellen
   async create(postData) {
     if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
+    // eslint-disable-next-line no-unused-vars
+    const { id, ...data } = postData
     const ref = await addDoc(colRef('social_posts'), {
-      ...postData,
+      ...data,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -97,13 +99,13 @@ export const seoArticlesService = {
   async getAll() {
     if (!isFirebaseConfigured) return seoArticles
     const snap = await getDocs(query(colRef('seo_articles'), orderBy('lastModified', 'desc')))
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+    return snap.docs.map(d => ({ ...d.data(), id: d.id }))
   },
 
   async getById(id) {
     if (!isFirebaseConfigured) return seoArticles.find(a => a.id === id) || null
     const snap = await getDoc(docRef('seo_articles', id))
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null
+    return snap.exists() ? { ...snap.data(), id: snap.id } : null
   },
 
   subscribe(callback) {
@@ -113,14 +115,16 @@ export const seoArticlesService = {
     }
     const q = query(colRef('seo_articles'), orderBy('lastModified', 'desc'))
     return onSnapshot(q, snap => {
-      callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      callback(snap.docs.map(d => ({ ...d.data(), id: d.id })))
     })
   },
 
   async create(articleData) {
     if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
+    // eslint-disable-next-line no-unused-vars
+    const { id, ...data } = articleData
     const ref = await addDoc(colRef('seo_articles'), {
-      ...articleData,
+      ...data,
       score: 0,
       lastModified: serverTimestamp(),
       createdAt: serverTimestamp(),
