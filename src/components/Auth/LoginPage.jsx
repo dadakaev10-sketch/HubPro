@@ -3,7 +3,7 @@ import { FileText, Mail, Lock, Eye, EyeOff, ArrowRight, Users } from 'lucide-rea
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function LoginPage() {
-  const { login, loginAsRole, loading, ROLES } = useAuth()
+  const { login, loginAsRole, loading, ROLES, isFirebaseConfigured } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -93,35 +93,37 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo accounts divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200 dark:border-gray-700" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-white dark:bg-gray-800 px-3 text-gray-500">
-                <Users className="w-4 h-4 inline mr-1" />
-                Demo-Zugang
-              </span>
-            </div>
-          </div>
-
-          {/* Quick login buttons */}
-          <div className="grid grid-cols-3 gap-3">
-            {demoAccounts.map(({ role, label, desc, color }) => (
-              <button
-                key={role}
-                onClick={() => loginAsRole(role)}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all group"
-              >
-                <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform`}>
-                  {label[0]}
+          {/* Demo-Zugang nur ohne Firebase */}
+          {!isFirebaseConfigured && (
+            <>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200 dark:border-gray-700" />
                 </div>
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
-                <span className="text-[10px] text-gray-400 text-center leading-tight">{desc}</span>
-              </button>
-            ))}
-          </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white dark:bg-gray-800 px-3 text-gray-500">
+                    <Users className="w-4 h-4 inline mr-1" />
+                    Demo-Zugang
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {demoAccounts.map(({ role, label, desc, color }) => (
+                  <button
+                    key={role}
+                    onClick={() => loginAsRole(role)}
+                    className="flex flex-col items-center gap-1.5 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all group"
+                  >
+                    <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center text-white text-xs font-bold group-hover:scale-110 transition-transform`}>
+                      {label[0]}
+                    </div>
+                    <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{label}</span>
+                    <span className="text-[10px] text-gray-400 text-center leading-tight">{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
