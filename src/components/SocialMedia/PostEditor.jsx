@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { X, Instagram, Linkedin, Facebook, Video, Send, MessageSquare, Clock, Image, Trash2 } from 'lucide-react'
+import { X, Instagram, Linkedin, Facebook, Video, Send, MessageSquare, Clock, Image, Trash2, Zap } from 'lucide-react'
+import ViralAnalyzer from './ViralAnalyzer'
 
 const STAGES = ['Content Dump', 'In Bearbeitung', 'Internes Review', 'Approval', 'Freigegeben', 'Published']
 
@@ -21,6 +22,7 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
   })
   const [newComment, setNewComment] = useState('')
   const [trackChanges, setTrackChanges] = useState([])
+  const [showViralAnalyzer, setShowViralAnalyzer] = useState(false)
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
@@ -47,9 +49,20 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {isNew ? 'Neuer Post' : post.title}
           </h2>
-          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            {!isClient && (
+              <button
+                onClick={() => setShowViralAnalyzer(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:opacity-90 transition-opacity"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Viral-Analyse
+              </button>
+            )}
+            <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Body */}
@@ -253,5 +266,16 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
         </div>
       </div>
     </div>
+
+    {showViralAnalyzer && (
+      <ViralAnalyzer
+        platform={form.platform}
+        onClose={() => setShowViralAnalyzer(false)}
+        onUseCaption={(caption) => {
+          update('content', caption)
+          setShowViralAnalyzer(false)
+        }}
+      />
+    )}
   )
 }

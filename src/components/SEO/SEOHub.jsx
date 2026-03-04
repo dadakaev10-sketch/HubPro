@@ -1,13 +1,15 @@
 import { useState, useMemo } from 'react'
-import { Plus, Search, FileText, Calendar, User, TrendingUp, Eye, Edit3, Trash2, ExternalLink } from 'lucide-react'
+import { Plus, Search, FileText, Calendar, User, TrendingUp, Eye, Edit3, Trash2, ExternalLink, Sparkles } from 'lucide-react'
 import { getScoreColor, getScoreLabel, getScoreBgColor } from '../../utils/seoScoring'
 import ArticleEditor from './ArticleEditor'
+import AIContentGenerator from './AIContentGenerator'
 
 export default function SEOHub({ articles, onUpdateArticle, isClient, clients = [] }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [showEditor, setShowEditor] = useState(false)
+  const [showAIGenerator, setShowAIGenerator] = useState(false)
 
   const filtered = useMemo(() => {
     return articles.filter(a => {
@@ -27,6 +29,20 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
 
   const handleNew = () => {
     setSelectedArticle(null)
+    setShowEditor(true)
+  }
+
+  const handleAIGenerated = (generated) => {
+    setShowAIGenerator(false)
+    setSelectedArticle({
+      title:       generated.title || '',
+      slug:        (generated.title || '').toLowerCase().replace(/[^a-z0-9äöüß]+/g, '-').replace(/(^-|-$)/g, ''),
+      htmlContent: generated.htmlContent || '',
+      keywords:    generated.keywords || [],
+      metaData:    { m_title: generated.metaTitle || '', m_desc: generated.metaDescription || '' },
+      status:      'draft',
+      wordCount:   (generated.htmlContent || '').replace(/<[^>]*>/g, '').trim().split(/\s+/).length,
+    })
     setShowEditor(true)
   }
 
@@ -80,10 +96,19 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
           </select>
         </div>
         {!isClient && (
-          <button onClick={handleNew} className="btn-primary">
-            <Plus className="w-4 h-4" />
-            Artikel erstellen
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowAIGenerator(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-brand-500 to-violet-500 text-white hover:opacity-90 transition-opacity"
+            >
+              <Sparkles className="w-4 h-4" />
+              KI generieren
+            </button>
+            <button onClick={handleNew} className="btn-primary">
+              <Plus className="w-4 h-4" />
+              Artikel erstellen
+            </button>
+          </div>
         )}
       </div>
 
@@ -156,6 +181,14 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
           </div>
         )}
       </div>
+
+      {/* AI Content Generator Modal */}
+      {showAIGenerator && (
+        <AIContentGenerator
+          onClose={() => setShowAIGenerator(false)}
+          onGenerated={handleAIGenerated}
+        />
+      )}
 
       {/* Article Editor Modal */}
       {showEditor && (
