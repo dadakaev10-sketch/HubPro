@@ -1,11 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { auth, db, isFirebaseConfigured, DB_BASE_PATH } from '../config/firebase'
+
+const DEMO_SESSION_KEY = 'hubpro_demo_user'
 
 const AuthContext = createContext(null)
 
@@ -53,7 +56,11 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!isFirebaseConfigured) {
-      // Demo-Modus: kein Auth-Listener nötig
+      // Demo-Modus: Session aus sessionStorage wiederherstellen
+      try {
+        const stored = sessionStorage.getItem(DEMO_SESSION_KEY)
+        if (stored) setUser(JSON.parse(stored))
+      } catch {}
       setLoading(false)
       return
     }
@@ -85,6 +92,7 @@ export function AuthProvider({ children }) {
       setLoading(false)
       if (found) {
         setUser(found)
+        sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(found))
         return { success: true }
       }
       return { success: false, error: 'Ungültige Anmeldedaten' }
@@ -111,11 +119,42 @@ export function AuthProvider({ children }) {
   const loginAsRole = useCallback((role) => {
     if (isFirebaseConfigured) return
     const found = DEMO_USERS.find(u => u.role === role)
-    if (found) setUser(found)
+    if (found) {
+      setUser(found)
+      sessionStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(found))
+    }
+  }, [])
+
+  const register = useCallback(async (name, email, password) => {
+    if (!isFirebaseConfigured) {
+      return { success: false, error: 'Registrierung nur mit Firebase möglich.' }
+    }
+    try {
+      setLoading(true)
+      const credential = await createUserWithEmailAndPassword(auth, email, password)
+      const avatar = name.trim().split(/\s+/).map(n => n[0]).join('').toUpperCase().slice(0, 2)
+      await setDoc(doc(db, `${DB_BASE_PATH}/users`, credential.user.uid), {
+        name: name.trim(),
+        email,
+        role: ROLES.AGENCY,
+        avatar,
+        createdAt: new Date().toISOString(),
+      })
+      return { success: true }
+    } catch (err) {
+      setLoading(false)
+      const messages = {
+        'auth/email-already-in-use': 'Diese E-Mail wird bereits verwendet.',
+        'auth/weak-password': 'Passwort muss mindestens 6 Zeichen haben.',
+        'auth/invalid-email': 'Ungültige E-Mail-Adresse.',
+      }
+      return { success: false, error: messages[err.code] || 'Registrierung fehlgeschlagen.' }
+    }
   }, [])
 
   const logout = useCallback(async () => {
     if (!isFirebaseConfigured) {
+      sessionStorage.removeItem(DEMO_SESSION_KEY)
       setUser(null)
       return
     }
@@ -135,6 +174,7 @@ export function AuthProvider({ children }) {
       user,
       loading,
       login,
+      register,
       loginAsRole: isFirebaseConfigured ? null : loginAsRole,
       logout,
       isAdmin,
