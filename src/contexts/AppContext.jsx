@@ -9,6 +9,7 @@ const VIEWS = {
   SEO_CONTENT: 'seo-content',
   DASHBOARD: 'dashboard',
   POST_ANALYTICS: 'post-analytics',
+  USER_MANAGEMENT: 'user-management',
 }
 
 export function AppProvider({ children }) {

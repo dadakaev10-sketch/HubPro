@@ -11,6 +11,7 @@ import {
   Megaphone,
   PenTool,
   Activity,
+  Users,
 } from 'lucide-react'
 import { useApp, VIEWS } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -37,11 +38,17 @@ const menuSections = [
       { id: VIEWS.POST_ANALYTICS, label: 'Post-Analytics', icon: Activity },
     ],
   },
+  {
+    title: 'Administration',
+    items: [
+      { id: VIEWS.USER_MANAGEMENT, label: 'User-Verwaltung', icon: Users, adminOnly: true },
+    ],
+  },
 ]
 
 export default function Sidebar() {
   const { currentView, setCurrentView, sidebarOpen, toggleSidebar } = useApp()
-  const { isClient } = useAuth()
+  const { isClient, isAdmin } = useAuth()
 
   return (
     <aside
@@ -67,9 +74,11 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         {menuSections.map((section) => {
-          const visibleItems = section.items.filter(
-            item => !item.agencyOnly || !isClient
-          )
+          const visibleItems = section.items.filter(item => {
+            if (item.agencyOnly && isClient) return false
+            if (item.adminOnly && !isAdmin) return false
+            return true
+          })
           if (visibleItems.length === 0) return null
 
           return (

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AppProvider, useApp, VIEWS } from './contexts/AppContext'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout/Layout'
@@ -9,37 +9,88 @@ import SocialDiscovery from './components/Discovery/SocialDiscovery'
 import KeywordExplorer from './components/Discovery/KeywordExplorer'
 import PerformanceDashboard from './components/Analytics/PerformanceDashboard'
 import PostAnalytics from './components/Analytics/PostAnalytics'
-import { socialPosts as initialPosts, seoArticles as initialArticles } from './data/mockData'
+import UserManagement from './components/Admin/UserManagement'
+import { socialPostsService, seoArticlesService } from './services/firestore'
+import { isFirebaseConfigured } from './config/firebase'
 
 function AppContent() {
-  const { user, isClient } = useAuth()
+  const { user, isClient, isAdmin } = useAuth()
   const { currentView, addNotification } = useApp()
 
-  // State for data
-  const [posts, setPosts] = useState(initialPosts)
-  const [articles, setArticles] = useState(initialArticles)
+  const [posts, setPosts] = useState([])
+  const [articles, setArticles] = useState([])
+  const [dataLoading, setDataLoading] = useState(true)
 
-  const handleUpdatePost = useCallback((updatedPost) => {
-    setPosts(prev => {
-      const exists = prev.find(p => p.id === updatedPost.id)
-      if (exists) {
-        return prev.map(p => p.id === updatedPost.id ? updatedPost : p)
-      }
-      return [updatedPost, ...prev]
-    })
-    addNotification({ type: 'success', message: 'Post erfolgreich gespeichert' })
-  }, [addNotification])
+  // Echtzeit-Listener für Firestore (oder Mock-Daten Fallback)
+  useEffect(() => {
+    if (!user) return
 
-  const handleUpdateArticle = useCallback((updatedArticle) => {
-    setArticles(prev => {
-      const exists = prev.find(a => a.id === updatedArticle.id)
-      if (exists) {
-        return prev.map(a => a.id === updatedArticle.id ? updatedArticle : a)
-      }
-      return [updatedArticle, ...prev]
+    setDataLoading(true)
+
+    const unsubPosts = socialPostsService.subscribe((data) => {
+      setPosts(data)
+      setDataLoading(false)
     })
-    addNotification({ type: 'success', message: 'Artikel erfolgreich gespeichert' })
-  }, [addNotification])
+
+    const unsubArticles = seoArticlesService.subscribe((data) => {
+      setArticles(data)
+    })
+
+    return () => {
+      unsubPosts()
+      unsubArticles()
+    }
+  }, [user])
+
+  const handleUpdatePost = useCallback(async (updatedPost) => {
+    if (!isFirebaseConfigured) {
+      setPosts(prev => {
+        const exists = prev.find(p => p.id === updatedPost.id)
+        return exists
+          ? prev.map(p => p.id === updatedPost.id ? updatedPost : p)
+          : [updatedPost, ...prev]
+      })
+      addNotification({ type: 'success', message: 'Post erfolgreich gespeichert' })
+      return
+    }
+    try {
+      if (updatedPost.id && posts.find(p => p.id === updatedPost.id)) {
+        const { id, ...data } = updatedPost
+        await socialPostsService.update(id, data)
+      } else {
+        await socialPostsService.create(updatedPost)
+      }
+      addNotification({ type: 'success', message: 'Post erfolgreich gespeichert' })
+    } catch (err) {
+      console.error(err)
+      addNotification({ type: 'error', message: 'Fehler beim Speichern' })
+    }
+  }, [posts, addNotification])
+
+  const handleUpdateArticle = useCallback(async (updatedArticle) => {
+    if (!isFirebaseConfigured) {
+      setArticles(prev => {
+        const exists = prev.find(a => a.id === updatedArticle.id)
+        return exists
+          ? prev.map(a => a.id === updatedArticle.id ? updatedArticle : a)
+          : [updatedArticle, ...prev]
+      })
+      addNotification({ type: 'success', message: 'Artikel erfolgreich gespeichert' })
+      return
+    }
+    try {
+      if (updatedArticle.id && articles.find(a => a.id === updatedArticle.id)) {
+        const { id, ...data } = updatedArticle
+        await seoArticlesService.update(id, data)
+      } else {
+        await seoArticlesService.create(updatedArticle)
+      }
+      addNotification({ type: 'success', message: 'Artikel erfolgreich gespeichert' })
+    } catch (err) {
+      console.error(err)
+      addNotification({ type: 'error', message: 'Fehler beim Speichern' })
+    }
+  }, [articles, addNotification])
 
   if (!user) return <LoginPage />
 
@@ -50,13 +101,15 @@ function AppContent() {
       case VIEWS.KEYWORD_EXPLORER:
         return <KeywordExplorer />
       case VIEWS.SOCIAL_HUB:
-        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} />
+        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} />
       case VIEWS.SEO_CONTENT:
-        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} />
+        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} />
       case VIEWS.DASHBOARD:
         return <PerformanceDashboard />
       case VIEWS.POST_ANALYTICS:
         return <PostAnalytics posts={posts} />
+      case VIEWS.USER_MANAGEMENT:
+        return isAdmin ? <UserManagement /> : <PerformanceDashboard />
       default:
         return <PerformanceDashboard />
     }
