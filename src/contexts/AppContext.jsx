@@ -26,6 +26,8 @@ export function AppProvider({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const [notificationHistory, setNotificationHistory] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
 
   // View im URL-Hash speichern
   const setCurrentView = useCallback((view) => {
@@ -54,10 +56,17 @@ export function AppProvider({ children }) {
 
   const addNotification = useCallback((notification) => {
     const id = Date.now()
-    setNotifications(prev => [...prev, { ...notification, id }])
+    const full = { ...notification, id, timestamp: new Date().toISOString() }
+    setNotifications(prev => [...prev, full])
+    setNotificationHistory(prev => [full, ...prev].slice(0, 50))
+    setUnreadCount(prev => prev + 1)
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id))
     }, 4000)
+  }, [])
+
+  const markNotificationsRead = useCallback(() => {
+    setUnreadCount(0)
   }, [])
 
   return (
@@ -71,6 +80,9 @@ export function AppProvider({ children }) {
       toggleDarkMode,
       notifications,
       addNotification,
+      notificationHistory,
+      unreadCount,
+      markNotificationsRead,
       VIEWS,
     }}>
       {children}
