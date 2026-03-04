@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 
 const AppContext = createContext(null)
 
@@ -12,11 +12,34 @@ const VIEWS = {
   USER_MANAGEMENT: 'user-management',
 }
 
+const VALID_VIEWS = new Set(Object.values(VIEWS))
+
+function getInitialView() {
+  const hash = window.location.hash.slice(1)
+  return VALID_VIEWS.has(hash) ? hash : VIEWS.DASHBOARD
+}
+
 export function AppProvider({ children }) {
-  const [currentView, setCurrentView] = useState(VIEWS.DASHBOARD)
+  const [currentView, setCurrentViewState] = useState(getInitialView)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [darkMode, setDarkMode] = useState(false)
   const [notifications, setNotifications] = useState([])
+
+  // View im URL-Hash speichern
+  const setCurrentView = useCallback((view) => {
+    setCurrentViewState(view)
+    window.location.hash = view
+  }, [])
+
+  // Browser Zurück/Vor synchronisieren
+  useEffect(() => {
+    const onHashChange = () => {
+      const hash = window.location.hash.slice(1)
+      if (VALID_VIEWS.has(hash)) setCurrentViewState(hash)
+    }
+    window.addEventListener('hashchange', onHashChange)
+    return () => window.removeEventListener('hashchange', onHashChange)
+  }, [])
 
   const toggleSidebar = useCallback(() => setSidebarOpen(prev => !prev), [])
   const toggleDarkMode = useCallback(() => {
