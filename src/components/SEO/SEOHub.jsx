@@ -19,7 +19,7 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
         a.keywords?.some(k => k.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchesStatus = filterStatus === 'all' || a.status === filterStatus
       // Admin sieht alle, Agentur nur eigene, Kunden alle für sie bestimmten Artikel
-      const matchesCreator = isAdmin || isClient || !a.createdBy || a.createdBy === user?.id
+      const matchesCreator = isAdmin || isClient || a.createdBy === user?.id
       return matchesSearch && matchesStatus && matchesCreator
     })
   }, [articles, searchTerm, filterStatus, isAdmin, isClient, user?.id])

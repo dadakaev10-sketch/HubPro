@@ -44,7 +44,7 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [],
       // Wenn der Kunde einer Firma zugeordnet ist, nur deren Posts zeigen
       const matchesClient = !isClient || !clientName || post.client === clientName
       // Admin sieht alles, Agentur nur eigene Posts, Kunden gefiltert nach Firma
-      const matchesCreator = isAdmin || isClient || !post.createdBy || post.createdBy === user?.id
+      const matchesCreator = isAdmin || isClient || post.createdBy === user?.id
       return matchesSearch && matchesPlatform && matchesRole && matchesClient && matchesCreator
     })
   }, [posts, searchTerm, filterPlatform, isClient, clientName, isAdmin, user?.id])
