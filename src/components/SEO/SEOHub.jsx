@@ -3,7 +3,7 @@ import { Plus, Search, FileText, Calendar, User, TrendingUp, Eye, Edit3, Trash2,
 import { getScoreColor, getScoreLabel, getScoreBgColor } from '../../utils/seoScoring'
 import ArticleEditor from './ArticleEditor'
 
-export default function SEOHub({ articles, onUpdateArticle, isClient }) {
+export default function SEOHub({ articles, onUpdateArticle, isClient, clients = [] }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedArticle, setSelectedArticle] = useState(null)
@@ -164,6 +164,7 @@ export default function SEOHub({ articles, onUpdateArticle, isClient }) {
           onClose={() => { setShowEditor(false); setSelectedArticle(null) }}
           onSave={(article) => { onUpdateArticle(article); setShowEditor(false); setSelectedArticle(null) }}
           isClient={isClient}
+          clients={clients}
         />
       )}
     </div>

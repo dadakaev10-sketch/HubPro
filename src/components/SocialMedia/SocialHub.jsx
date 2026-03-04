@@ -25,7 +25,7 @@ const platformColors = {
   TikTok: 'text-gray-900 dark:text-white',
 }
 
-export default function SocialHub({ posts, onUpdatePost, isClient }) {
+export default function SocialHub({ posts, onUpdatePost, isClient, clients = [] }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
@@ -197,6 +197,7 @@ export default function SocialHub({ posts, onUpdatePost, isClient }) {
           onClose={() => { setShowEditor(false); setSelectedPost(null) }}
           onSave={(post) => { onUpdatePost(post); setShowEditor(false); setSelectedPost(null) }}
           isClient={isClient}
+          clients={clients}
         />
       )}
     </div>

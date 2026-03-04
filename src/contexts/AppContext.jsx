@@ -10,6 +10,7 @@ const VIEWS = {
   DASHBOARD: 'dashboard',
   POST_ANALYTICS: 'post-analytics',
   USER_MANAGEMENT: 'user-management',
+  CLIENT_MANAGEMENT: 'client-management',
 }
 
 const VALID_VIEWS = new Set(Object.values(VIEWS))

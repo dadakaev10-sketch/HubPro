@@ -10,7 +10,8 @@ import KeywordExplorer from './components/Discovery/KeywordExplorer'
 import PerformanceDashboard from './components/Analytics/PerformanceDashboard'
 import PostAnalytics from './components/Analytics/PostAnalytics'
 import UserManagement from './components/Admin/UserManagement'
-import { socialPostsService, seoArticlesService } from './services/firestore'
+import ClientManagement from './components/Admin/ClientManagement'
+import { socialPostsService, seoArticlesService, clientsService } from './services/firestore'
 import { isFirebaseConfigured } from './config/firebase'
 
 function AppContent() {
@@ -19,6 +20,7 @@ function AppContent() {
 
   const [posts, setPosts] = useState([])
   const [articles, setArticles] = useState([])
+  const [clients, setClients] = useState([])
   const [dataLoading, setDataLoading] = useState(true)
 
   // Echtzeit-Listener für Firestore (oder Mock-Daten Fallback)
@@ -36,9 +38,14 @@ function AppContent() {
       setArticles(data)
     })
 
+    const unsubClients = clientsService.subscribe((data) => {
+      setClients(data)
+    })
+
     return () => {
       unsubPosts()
       unsubArticles()
+      unsubClients()
     }
   }, [user])
 
@@ -109,15 +116,17 @@ function AppContent() {
       case VIEWS.KEYWORD_EXPLORER:
         return <KeywordExplorer />
       case VIEWS.SOCIAL_HUB:
-        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} />
+        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} clients={clients} />
       case VIEWS.SEO_CONTENT:
-        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} />
+        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} clients={clients} />
       case VIEWS.DASHBOARD:
         return <PerformanceDashboard posts={posts} articles={articles} />
       case VIEWS.POST_ANALYTICS:
         return <PostAnalytics posts={posts} />
       case VIEWS.USER_MANAGEMENT:
         return isAdmin ? <UserManagement /> : <PerformanceDashboard posts={posts} articles={articles} />
+      case VIEWS.CLIENT_MANAGEMENT:
+        return <ClientManagement clients={clients} />
       default:
         return <PerformanceDashboard posts={posts} articles={articles} />
     }

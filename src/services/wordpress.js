@@ -1,59 +1,65 @@
 /**
  * WordPress REST API Service
- * Veröffentlicht SEO-Artikel direkt zu einer WordPress-Installation.
- *
- * Benötigte Env-Variablen:
- *   VITE_WP_API_URL      = https://deine-website.de
- *   VITE_WP_USERNAME     = wordpress-benutzername
- *   VITE_WP_APP_PASSWORD = wordpress-application-password (Einstellungen → Sicherheit → App-Passwörter)
+ * Unterstützt sowohl globale Env-Variablen als auch per-Kunden-Zugangsdaten aus Firestore.
  */
 
-const WP_URL = (import.meta.env.VITE_WP_API_URL || '').replace(/\/$/, '')
-const WP_USER = import.meta.env.VITE_WP_USERNAME || ''
-const WP_PASS = import.meta.env.VITE_WP_APP_PASSWORD || ''
+const ENV_URL  = (import.meta.env.VITE_WP_API_URL || '').replace(/\/$/, '')
+const ENV_USER = import.meta.env.VITE_WP_USERNAME || ''
+const ENV_PASS = import.meta.env.VITE_WP_APP_PASSWORD || ''
 
-function getHeaders() {
-  const creds = btoa(`${WP_USER}:${WP_PASS}`)
+function makeHeaders(wpUrl, wpUser, wpPass) {
   return {
     'Content-Type': 'application/json',
-    Authorization: `Basic ${creds}`,
+    Authorization: `Basic ${btoa(`${wpUser}:${wpPass}`)}`,
   }
 }
 
-export const wordpressService = {
-  isConfigured: Boolean(WP_URL && WP_USER && WP_PASS),
+function resolveCredentials(client) {
+  if (client?.wpApiUrl && client?.wpUsername && client?.wpAppPassword) {
+    return {
+      url:  client.wpApiUrl.replace(/\/$/, ''),
+      user: client.wpUsername,
+      pass: client.wpAppPassword,
+    }
+  }
+  return { url: ENV_URL, user: ENV_USER, pass: ENV_PASS }
+}
 
-  async testConnection() {
-    const res = await fetch(`${WP_URL}/wp-json/wp/v2/users/me`, {
-      headers: getHeaders(),
-    })
-    if (!res.ok) throw new Error('WordPress-Verbindung fehlgeschlagen')
-    return res.json()
+export const wordpressService = {
+  // true wenn globale Env-Variablen gesetzt sind
+  isConfigured: Boolean(ENV_URL && ENV_USER && ENV_PASS),
+
+  // true wenn dieser Kunde eigene WP-Zugangsdaten hinterlegt hat
+  isConfiguredForClient(client) {
+    return Boolean(client?.wpApiUrl && client?.wpUsername && client?.wpAppPassword)
   },
 
   /**
    * Erstellt oder aktualisiert einen WordPress-Beitrag.
    * @param {object} article  – Article-Objekt aus Firestore
-   * @returns {{ wpPostId: number, wpPostUrl: string }}
+   * @param {object} [client] – Kunden-Objekt mit optionalen wpApiUrl/wpUsername/wpAppPassword
    */
-  async publishPost(article) {
+  async publishPost(article, client = null) {
+    const { url, user, pass } = resolveCredentials(client)
+    if (!url || !user || !pass) throw new Error('Keine WordPress-Zugangsdaten konfiguriert')
+
     const isUpdate = Boolean(article.wpPostId)
     const endpoint = isUpdate
-      ? `${WP_URL}/wp-json/wp/v2/posts/${article.wpPostId}`
-      : `${WP_URL}/wp-json/wp/v2/posts`
+      ? `${url}/wp-json/wp/v2/posts/${article.wpPostId}`
+      : `${url}/wp-json/wp/v2/posts`
 
     const payload = {
-      title: article.title,
+      title:   article.title,
       content: article.htmlContent || '',
-      status: article.status === 'published' ? 'publish' : 'draft',
-      slug: article.slug || '',
+      status:  article.status === 'published' ? 'publish' : 'draft',
+      slug:    article.slug || '',
       excerpt: article.metaData?.m_desc || '',
     }
 
     const res = await fetch(endpoint, {
-      method: isUpdate ? 'PUT' : 'POST',
-      headers: getHeaders(),
-      body: JSON.stringify(payload),
+      method:  isUpdate ? 'PUT' : 'POST',
+      headers: makeHeaders(url, user, pass),
+      body:    JSON.stringify(payload),
     })
 
     if (!res.ok) {

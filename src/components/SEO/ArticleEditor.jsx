@@ -3,7 +3,7 @@ import { X, Save, Eye, Type, Hash, Globe, Link, BarChart3, AlertCircle, CheckCir
 import { calculateSEOScore, getScoreColor, getScoreLabel, getScoreRingColor } from '../../utils/seoScoring'
 import { wordpressService } from '../../services/wordpress'
 
-export default function ArticleEditor({ article, onClose, onSave, isClient }) {
+export default function ArticleEditor({ article, onClose, onSave, isClient, clients = [] }) {
   const isNew = !article
   const [form, setForm] = useState({
     id: article?.id || `art_${Date.now()}`,
@@ -75,11 +75,14 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
     onSave({ ...form, score: seoResult.score })
   }
 
+  const selectedClient = clients.find(c => c.company === form.client) || null
+  const wpAvailable = wordpressService.isConfigured || wordpressService.isConfiguredForClient(selectedClient)
+
   const handlePublishToWordPress = async () => {
     setWpPublishing(true)
     setWpError('')
     try {
-      const result = await wordpressService.publishPost({ ...form, score: seoResult.score })
+      const result = await wordpressService.publishPost({ ...form, score: seoResult.score }, selectedClient)
       const updated = { ...form, score: seoResult.score, wpPostId: result.wpPostId, wpPostUrl: result.wpPostUrl }
       setForm(prev => ({ ...prev, wpPostId: result.wpPostId, wpPostUrl: result.wpPostUrl }))
       onSave(updated)
@@ -144,16 +147,32 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
             <div className="flex-1 p-6">
               {activeTab === 'editor' && (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel (H1)</label>
-                    <input
-                      type="text"
-                      value={form.title}
-                      onChange={(e) => update('title', e.target.value)}
-                      className="input text-lg font-semibold"
-                      placeholder="Der Titel deines Artikels"
-                      disabled={isClient}
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="col-span-2 sm:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Titel (H1)</label>
+                      <input
+                        type="text"
+                        value={form.title}
+                        onChange={(e) => update('title', e.target.value)}
+                        className="input text-lg font-semibold"
+                        placeholder="Der Titel deines Artikels"
+                        disabled={isClient}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kunde</label>
+                      <select
+                        value={form.client}
+                        onChange={(e) => update('client', e.target.value)}
+                        className="input"
+                        disabled={isClient}
+                      >
+                        <option value="">— kein Kunde —</option>
+                        {clients.map(c => (
+                          <option key={c.id} value={c.company}>{c.company}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* Keywords */}
@@ -363,7 +382,7 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
                 <option value="approved">Freigegeben</option>
                 <option value="published">Veröffentlicht</option>
               </select>
-              {wordpressService.isConfigured && (
+              {wpAvailable && (
                 <button
                   onClick={handlePublishToWordPress}
                   disabled={wpPublishing}

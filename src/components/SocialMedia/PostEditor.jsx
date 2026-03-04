@@ -3,7 +3,7 @@ import { X, Instagram, Linkedin, Facebook, Video, Send, MessageSquare, Clock, Im
 
 const STAGES = ['Content Dump', 'In Bearbeitung', 'Internes Review', 'Approval', 'Freigegeben', 'Published']
 
-export default function PostEditor({ post, onClose, onSave, isClient }) {
+export default function PostEditor({ post, onClose, onSave, isClient, clients = [] }) {
   const isNew = !post
   const [form, setForm] = useState({
     id: post?.id || `post_${Date.now()}`,
@@ -121,6 +121,21 @@ export default function PostEditor({ post, onClose, onSave, isClient }) {
                   className="input"
                   disabled={isClient}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kunde</label>
+                <select
+                  value={form.client}
+                  onChange={(e) => update('client', e.target.value)}
+                  className="input"
+                  disabled={isClient}
+                >
+                  <option value="">— kein Kunde —</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.company}>{c.company}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

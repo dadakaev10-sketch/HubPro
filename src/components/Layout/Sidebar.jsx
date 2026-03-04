@@ -12,6 +12,7 @@ import {
   PenTool,
   Activity,
   Users,
+  Building2,
 } from 'lucide-react'
 import { useApp, VIEWS } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -42,6 +43,7 @@ const menuSections = [
     title: 'Administration',
     items: [
       { id: VIEWS.USER_MANAGEMENT, label: 'User-Verwaltung', icon: Users, adminOnly: true },
+      { id: VIEWS.CLIENT_MANAGEMENT, label: 'Kundenverwaltung', icon: Building2, agencyOnly: false, adminOrAgency: true },
     ],
   },
 ]
@@ -77,6 +79,7 @@ export default function Sidebar() {
           const visibleItems = section.items.filter(item => {
             if (item.agencyOnly && isClient) return false
             if (item.adminOnly && !isAdmin) return false
+            if (item.adminOrAgency && isClient) return false
             return true
           })
           if (visibleItems.length === 0) return null

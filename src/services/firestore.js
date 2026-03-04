@@ -19,7 +19,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { db, DB_BASE_PATH, isFirebaseConfigured } from '../config/firebase'
-import { socialPosts, seoArticles } from '../data/mockData'
+import { socialPosts, seoArticles, clients as mockClients } from '../data/mockData'
 
 // ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
@@ -143,6 +143,42 @@ export const seoArticlesService = {
   async delete(id) {
     if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
     await deleteDoc(docRef('seo_articles', id))
+  },
+}
+
+// ─── Kunden ───────────────────────────────────────────────────────────────────
+
+export const clientsService = {
+  subscribe(callback) {
+    if (!isFirebaseConfigured) {
+      callback(mockClients)
+      return () => {}
+    }
+    const q = query(colRef('clients'), orderBy('company', 'asc'))
+    return onSnapshot(q, snap => {
+      callback(snap.docs.map(d => ({ ...d.data(), id: d.id })))
+    })
+  },
+
+  async create(clientData) {
+    if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
+    const { id, ...data } = clientData
+    const ref = await addDoc(colRef('clients'), {
+      ...data,
+      createdAt: serverTimestamp(),
+    })
+    return ref.id
+  },
+
+  async update(id, updates) {
+    if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
+    const { id: _id, ...data } = updates
+    await updateDoc(docRef('clients', id), data)
+  },
+
+  async delete(id) {
+    if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
+    await deleteDoc(docRef('clients', id))
   },
 }
 
