@@ -105,13 +105,13 @@ function AppContent() {
       case VIEWS.SEO_CONTENT:
         return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} />
       case VIEWS.DASHBOARD:
-        return <PerformanceDashboard />
+        return <PerformanceDashboard posts={posts} articles={articles} />
       case VIEWS.POST_ANALYTICS:
         return <PostAnalytics posts={posts} />
       case VIEWS.USER_MANAGEMENT:
-        return isAdmin ? <UserManagement /> : <PerformanceDashboard />
+        return isAdmin ? <UserManagement /> : <PerformanceDashboard posts={posts} articles={articles} />
       default:
-        return <PerformanceDashboard />
+        return <PerformanceDashboard posts={posts} articles={articles} />
     }
   }
 

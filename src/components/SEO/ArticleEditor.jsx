@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
-import { X, Save, Eye, Type, Hash, Globe, Link, BarChart3, AlertCircle, CheckCircle } from 'lucide-react'
+import { X, Save, Eye, Type, Hash, Globe, Link, BarChart3, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react'
 import { calculateSEOScore, getScoreColor, getScoreLabel, getScoreRingColor } from '../../utils/seoScoring'
+import { wordpressService } from '../../services/wordpress'
 
 export default function ArticleEditor({ article, onClose, onSave, isClient }) {
   const isNew = !article
@@ -18,9 +19,13 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
     client: article?.client || '',
     lastModified: new Date().toISOString(),
     readingTime: article?.readingTime || 0,
+    wpPostId: article?.wpPostId || null,
+    wpPostUrl: article?.wpPostUrl || '',
   })
   const [keywordInput, setKeywordInput] = useState('')
   const [activeTab, setActiveTab] = useState('editor')
+  const [wpPublishing, setWpPublishing] = useState(false)
+  const [wpError, setWpError] = useState('')
 
   const update = (field, value) => {
     setForm(prev => {
@@ -68,6 +73,20 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
 
   const handleSave = () => {
     onSave({ ...form, score: seoResult.score })
+  }
+
+  const handlePublishToWordPress = async () => {
+    setWpPublishing(true)
+    setWpError('')
+    try {
+      const result = await wordpressService.publishPost({ ...form, score: seoResult.score })
+      const updated = { ...form, score: seoResult.score, wpPostId: result.wpPostId, wpPostUrl: result.wpPostUrl }
+      setForm(prev => ({ ...prev, wpPostId: result.wpPostId, wpPostUrl: result.wpPostUrl }))
+      onSave(updated)
+    } catch (err) {
+      setWpError(err.message)
+    }
+    setWpPublishing(false)
   }
 
   const circumference = 2 * Math.PI * 40
@@ -313,9 +332,25 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-          <button onClick={onClose} className="btn-secondary">
-            {isClient ? 'Schliessen' : 'Abbrechen'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={onClose} className="btn-secondary">
+              {isClient ? 'Schliessen' : 'Abbrechen'}
+            </button>
+            {form.wpPostUrl && (
+              <a
+                href={form.wpPostUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+              >
+                <ExternalLink className="w-3 h-3" />
+                WordPress Post ansehen
+              </a>
+            )}
+            {wpError && (
+              <span className="text-xs text-red-500">{wpError}</span>
+            )}
+          </div>
           {!isClient && (
             <div className="flex gap-2">
               <select
@@ -328,6 +363,20 @@ export default function ArticleEditor({ article, onClose, onSave, isClient }) {
                 <option value="approved">Freigegeben</option>
                 <option value="published">Veröffentlicht</option>
               </select>
+              {wordpressService.isConfigured && (
+                <button
+                  onClick={handlePublishToWordPress}
+                  disabled={wpPublishing}
+                  className="btn-secondary disabled:opacity-50"
+                >
+                  {wpPublishing ? (
+                    <span className="w-4 h-4 border-2 border-gray-400/30 border-t-gray-500 rounded-full animate-spin" />
+                  ) : (
+                    <Globe className="w-4 h-4" />
+                  )}
+                  {form.wpPostId ? 'WP aktualisieren' : 'Zu WordPress'}
+                </button>
+              )}
               <button onClick={handleSave} className="btn-primary">
                 <Save className="w-4 h-4" />
                 Speichern
