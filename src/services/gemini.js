@@ -88,6 +88,40 @@ Pflichtfelder:
   },
 
   /**
+   * Keyword-Recherche: Generiert Keyword-Ideen mit Metriken.
+   */
+  async generateKeywordResearch({ keyword, language = 'de', market = 'Deutschland', limit = 20 }) {
+    const lang = language === 'en' ? 'English / US market' : `Deutsch / Markt: ${market}`
+
+    const prompt = `Du bist ein erfahrener SEO-Experte. Generiere Keyword-Recherche-Daten für das Seed-Keyword "${keyword}".
+
+Sprache/Markt: ${lang}
+Anzahl Keywords: ${limit} (inklusive Seed-Keyword als erstes)
+
+Antworte NUR mit gültigem JSON-Array (keine Markdown-Fences, kein Text davor/danach):
+[
+  {
+    "keyword": "exakter keyword-text",
+    "volume": <realistische monatliche Suchanfragen als Zahl, z.B. 12400>,
+    "difficulty": <SEO-Schwierigkeit 0-100>,
+    "cpc": <CPC in EUR, z.B. 1.45>,
+    "trend": "up" | "down" | "stable",
+    "intent": "informational" | "commercial" | "transactional" | "navigational",
+    "relatedKeywords": ["verwandtes kw 1", "verwandtes kw 2", "verwandtes kw 3"]
+  }
+]
+
+Wichtig:
+- Volumen soll realistisch und plausibel sein (keine Phantasiezahlen)
+- Schwierigkeit soll die tatsächliche Wettbewerbssituation widerspiegeln
+- Mische Short-Tail, Mid-Tail und Long-Tail Keywords
+- Verschiedene Search Intents abdecken`
+
+    const text = await callGemini([{ text: prompt }])
+    return JSON.parse(text)
+  },
+
+  /**
    * Generiert einen vollständigen SEO-Artikel.
    */
   async generateSEOContent({ keyword, contentType, tonality, wordCount, focusKeywords, language }) {
