@@ -3,7 +3,7 @@ import { X, Save, Eye, Type, Hash, Globe, Link, BarChart3, AlertCircle, CheckCir
 import { calculateSEOScore, getScoreColor, getScoreLabel, getScoreRingColor } from '../../utils/seoScoring'
 import { wordpressService } from '../../services/wordpress'
 
-export default function ArticleEditor({ article, onClose, onSave, isClient, clients = [] }) {
+export default function ArticleEditor({ article, onClose, onSave, isClient, clients = [], currentUser = null }) {
   const isNew = !article
   const [form, setForm] = useState({
     id: article?.id || `art_${Date.now()}`,
@@ -21,6 +21,9 @@ export default function ArticleEditor({ article, onClose, onSave, isClient, clie
     readingTime: article?.readingTime || 0,
     wpPostId: article?.wpPostId || null,
     wpPostUrl: article?.wpPostUrl || '',
+    // Ersteller für rollenbasierte Filterung
+    createdBy: article?.createdBy || currentUser?.id || '',
+    createdByName: article?.createdByName || currentUser?.name || '',
   })
   const [keywordInput, setKeywordInput] = useState('')
   const [activeTab, setActiveTab] = useState('editor')

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, Filter, Search, Instagram, Linkedin, Facebook, Video, GripVertical, MessageSquare, Calendar, Eye, MoreHorizontal, ChevronRight, Image } from 'lucide-react'
 import PostEditor from './PostEditor'
+import { useAuth } from '../../contexts/AuthContext'
 
 const STAGES = [
   { id: 0, label: 'Content Dump', color: 'bg-gray-400', lightBg: 'bg-gray-50 dark:bg-gray-800/50' },
@@ -26,6 +27,7 @@ const platformColors = {
 }
 
 export default function SocialHub({ posts, onUpdatePost, isClient, clients = [], clientName = null }) {
+  const { user, isAdmin } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
@@ -41,9 +43,11 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [],
       const matchesRole = !isClient || post.stage >= 1
       // Wenn der Kunde einer Firma zugeordnet ist, nur deren Posts zeigen
       const matchesClient = !isClient || !clientName || post.client === clientName
-      return matchesSearch && matchesPlatform && matchesRole && matchesClient
+      // Admin sieht alles, Agentur nur eigene Posts, Kunden gefiltert nach Firma
+      const matchesCreator = isAdmin || isClient || !post.createdBy || post.createdBy === user?.id
+      return matchesSearch && matchesPlatform && matchesRole && matchesClient && matchesCreator
     })
-  }, [posts, searchTerm, filterPlatform, isClient, clientName])
+  }, [posts, searchTerm, filterPlatform, isClient, clientName, isAdmin, user?.id])
 
   const postsByStage = useMemo(() => {
     // Kunden sehen Stages 1-5 (kein interner Content Dump)
@@ -206,6 +210,7 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [],
           onSave={(post) => { onUpdatePost(post); setShowEditor(false); setSelectedPost(null) }}
           isClient={isClient}
           clients={clients}
+          currentUser={user}
         />
       )}
     </div>

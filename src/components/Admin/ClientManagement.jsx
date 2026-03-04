@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Building2, Plus, Pencil, Trash2, X, Save, Globe, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { clientsService } from '../../services/firestore'
 import { useApp } from '../../contexts/AppContext'
+import { useAuth } from '../../contexts/AuthContext'
 import { isFirebaseConfigured } from '../../config/firebase'
 
 export default function ClientManagement({ clients }) {
   const { addNotification } = useApp()
+  const { user, isAdmin } = useAuth()
+
+  // Admin sieht alle Kunden, Agentur nur eigene
+  const visibleClients = useMemo(() => {
+    if (isAdmin) return clients
+    return clients.filter(c => c.createdBy === user?.id)
+  }, [clients, isAdmin, user?.id])
   const [showForm, setShowForm] = useState(false)
   const [editingClient, setEditingClient] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -42,6 +50,11 @@ export default function ClientManagement({ clients }) {
     try {
       const initials = form.company.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)
       const data = { ...form, avatar: initials }
+      if (!editingClient) {
+        // Ersteller speichern damit Agentur nur eigene Kunden sieht
+        data.createdBy = user?.id || ''
+        data.createdByName = user?.name || ''
+      }
       if (editingClient) {
         await clientsService.update(editingClient.id, data)
         addNotification({ type: 'success', message: 'Kunde aktualisiert' })
@@ -74,7 +87,7 @@ export default function ClientManagement({ clients }) {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Kundenverwaltung</h2>
-          <p className="text-sm text-gray-500 mt-1">{clients.length} Kunden · WordPress-Integration per Kunde konfigurierbar</p>
+          <p className="text-sm text-gray-500 mt-1">{visibleClients.length} Kunden · WordPress-Integration per Kunde konfigurierbar</p>
         </div>
         <button onClick={openCreate} className="btn-primary" disabled={!isFirebaseConfigured}>
           <Plus className="w-4 h-4" />
@@ -90,7 +103,7 @@ export default function ClientManagement({ clients }) {
 
       {/* Client list */}
       <div className="space-y-3">
-        {clients.map(client => (
+        {visibleClients.map(client => (
           <div key={client.id} className="card p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-brand-700 dark:text-brand-400 font-bold text-sm shrink-0">
               {client.avatar || client.company?.slice(0, 2).toUpperCase()}
@@ -124,7 +137,7 @@ export default function ClientManagement({ clients }) {
             </div>
           </div>
         ))}
-        {clients.length === 0 && (
+        {visibleClients.length === 0 && (
           <div className="text-center py-12 text-gray-400">
             <Building2 className="w-10 h-10 mx-auto mb-3 opacity-40" />
             <p className="text-sm">Noch keine Kunden angelegt</p>

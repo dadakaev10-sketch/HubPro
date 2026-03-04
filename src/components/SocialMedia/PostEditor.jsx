@@ -4,7 +4,7 @@ import ViralAnalyzer from './ViralAnalyzer'
 
 const STAGES = ['Content Dump', 'In Bearbeitung', 'Internes Review', 'Approval', 'Freigegeben', 'Published']
 
-export default function PostEditor({ post, onClose, onSave, isClient, clients = [] }) {
+export default function PostEditor({ post, onClose, onSave, isClient, clients = [], currentUser = null }) {
   const isNew = !post
   const [form, setForm] = useState({
     id: post?.id || `post_${Date.now()}`,
@@ -19,6 +19,9 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
     client: post?.client || '',
     metrics: post?.metrics || { likes: 0, shares: 0, comments: 0, reach: 0 },
     comments: post?.comments || [],
+    // Ersteller für rollenbasierte Filterung
+    createdBy: post?.createdBy || currentUser?.id || '',
+    createdByName: post?.createdByName || currentUser?.name || '',
   })
   const [newComment, setNewComment] = useState('')
   const [trackChanges, setTrackChanges] = useState([])

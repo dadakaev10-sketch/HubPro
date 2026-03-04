@@ -3,8 +3,10 @@ import { Plus, Search, FileText, Calendar, User, TrendingUp, Eye, Edit3, Trash2,
 import { getScoreColor, getScoreLabel, getScoreBgColor } from '../../utils/seoScoring'
 import ArticleEditor from './ArticleEditor'
 import AIContentGenerator from './AIContentGenerator'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function SEOHub({ articles, onUpdateArticle, isClient, clients = [] }) {
+  const { user, isAdmin } = useAuth()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedArticle, setSelectedArticle] = useState(null)
@@ -16,16 +18,18 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
       const matchesSearch = a.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         a.keywords?.some(k => k.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchesStatus = filterStatus === 'all' || a.status === filterStatus
-      return matchesSearch && matchesStatus
+      // Admin sieht alle, Agentur nur eigene, Kunden alle für sie bestimmten Artikel
+      const matchesCreator = isAdmin || isClient || !a.createdBy || a.createdBy === user?.id
+      return matchesSearch && matchesStatus && matchesCreator
     })
-  }, [articles, searchTerm, filterStatus])
+  }, [articles, searchTerm, filterStatus, isAdmin, isClient, user?.id])
 
   const stats = useMemo(() => ({
-    total: articles.length,
-    published: articles.filter(a => a.status === 'published').length,
-    avgScore: Math.round(articles.reduce((s, a) => s + (a.score || 0), 0) / (articles.length || 1)),
-    inReview: articles.filter(a => a.status === 'review').length,
-  }), [articles])
+    total: filtered.length,
+    published: filtered.filter(a => a.status === 'published').length,
+    avgScore: Math.round(filtered.reduce((s, a) => s + (a.score || 0), 0) / (filtered.length || 1)),
+    inReview: filtered.filter(a => a.status === 'review').length,
+  }), [filtered])
 
   const handleNew = () => {
     setSelectedArticle(null)
@@ -198,6 +202,7 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
           onSave={(article) => { onUpdateArticle(article); setShowEditor(false); setSelectedArticle(null) }}
           isClient={isClient}
           clients={clients}
+          currentUser={user}
         />
       )}
     </div>
