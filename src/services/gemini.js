@@ -88,6 +88,69 @@ Pflichtfelder:
   },
 
   /**
+   * Generiert aktuelle Trending Topics für eine Branche/Plattform.
+   */
+  async generateTrendingTopics({ industry, platform = 'all', language = 'de' }) {
+    const lang = language === 'en' ? 'English' : 'Deutsch'
+    const platformFilter = platform === 'all' ? 'Instagram, LinkedIn, TikTok, Facebook' : platform
+
+    const prompt = `Du bist ein Social-Media-Trend-Analyst. Generiere 8 aktuelle, relevante Trending Topics für Content Creator und Marketing-Agenturen.
+
+Branche: ${industry || 'Marketing & Social Media'}
+Plattform(en): ${platformFilter}
+Sprache: ${lang}
+
+Antworte NUR mit gültigem JSON-Array (keine Markdown-Fences):
+[
+  {
+    "topic": "Trend-Thema (prägnant, 3-6 Wörter)",
+    "platform": "Instagram" | "LinkedIn" | "TikTok" | "Facebook",
+    "volume": <geschätzte monatliche Mentions als Zahl>,
+    "growth": <Wachstum in % der letzten 30 Tage, z.B. 145>,
+    "category": "Technologie" | "Strategie" | "Format" | "Engagement" | "Kooperation" | "Trend",
+    "description": "1 Satz warum dieser Trend gerade relevant ist"
+  }
+]
+
+Wichtig: Trends sollen aktuell und relevant für ${new Date().getFullYear()} sein.`
+
+    const text = await callGemini([{ text: prompt }])
+    return JSON.parse(text)
+  },
+
+  /**
+   * Generiert personalisierte Viral Hooks nach Copywriting-Formeln.
+   */
+  async generateViralHooks({ topic, industry, platform = 'all', formula = 'all', language = 'de' }) {
+    const lang = language === 'en' ? 'English' : 'Deutsch'
+    const formulaFilter = formula === 'all' ? 'AIDA, PAS, BAB, FAB (je 2-3 Hooks)' : `nur ${formula.toUpperCase()}-Formel (8-10 Hooks)`
+    const platformFilter = platform === 'all' ? 'gemischt für Instagram, LinkedIn, TikTok' : platform
+
+    const prompt = `Du bist ein Copywriting-Experte für Social Media. Generiere Viral Hooks für Content Creator.
+
+Thema: ${topic || 'Social Media Marketing'}
+Branche: ${industry || 'Marketing & Agenturen'}
+Plattform: ${platformFilter}
+Formel: ${formulaFilter}
+Sprache: ${lang}
+
+Antworte NUR mit gültigem JSON-Array (keine Markdown-Fences):
+[
+  {
+    "hook": "Der fertige Hook-Text (direkt verwendbar, max. 120 Zeichen)",
+    "formula": "aida" | "pas" | "bab" | "fab",
+    "category": "Aufmerksamkeit" | "Bildung" | "Storytelling" | "Meinung" | "Empfehlung",
+    "platform": "Instagram" | "LinkedIn" | "TikTok"
+  }
+]
+
+Wichtig: Hooks müssen sofort einsetzbar sein, authentisch klingen und echte Neugier wecken.`
+
+    const text = await callGemini([{ text: prompt }])
+    return JSON.parse(text)
+  },
+
+  /**
    * Keyword-Recherche: Generiert Keyword-Ideen mit Metriken.
    */
   async generateKeywordResearch({ keyword, language = 'de', market = 'Deutschland', limit = 20 }) {
