@@ -25,7 +25,7 @@ const platformColors = {
   TikTok: 'text-gray-900 dark:text-white',
 }
 
-export default function SocialHub({ posts, onUpdatePost, isClient, clients = [] }) {
+export default function SocialHub({ posts, onUpdatePost, isClient, clients = [], clientName = null }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
@@ -39,9 +39,11 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [] 
       const matchesPlatform = filterPlatform === 'all' || post.platform === filterPlatform
       // Clients sehen alle Stages außer Stage 0 (Content Dump – interne Ideensammlung)
       const matchesRole = !isClient || post.stage >= 1
-      return matchesSearch && matchesPlatform && matchesRole
+      // Wenn der Kunde einer Firma zugeordnet ist, nur deren Posts zeigen
+      const matchesClient = !isClient || !clientName || post.client === clientName
+      return matchesSearch && matchesPlatform && matchesRole && matchesClient
     })
-  }, [posts, searchTerm, filterPlatform, isClient])
+  }, [posts, searchTerm, filterPlatform, isClient, clientName])
 
   const postsByStage = useMemo(() => {
     // Kunden sehen Stages 1-5 (kein interner Content Dump)

@@ -3,10 +3,11 @@ import {
   Clock, CheckCircle2, Rocket, AlertCircle,
   Instagram, Linkedin, Facebook, Video, Image,
   FileText, Eye, ChevronRight, MessageSquare, Calendar,
-  ThumbsUp, RotateCcw, Sparkles
+  ThumbsUp, RotateCcw, Sparkles, Link2
 } from 'lucide-react'
 import PostEditor from '../SocialMedia/PostEditor'
 import ArticleEditor from '../SEO/ArticleEditor'
+import { useAuth } from '../../contexts/AuthContext'
 
 const STAGE_LABELS = {
   0: 'Content Dump',
@@ -50,33 +51,45 @@ const articleStatusColor = {
 }
 
 export default function ClientPortal({ posts, articles, onUpdatePost, onUpdateArticle, clients = [] }) {
+  const { user } = useAuth()
   const [selectedPost, setSelectedPost] = useState(null)
   const [showPostEditor, setShowPostEditor] = useState(false)
   const [selectedArticle, setSelectedArticle] = useState(null)
   const [showArticleEditor, setShowArticleEditor] = useState(false)
 
+  // Wenn der User einem Kunden zugeordnet ist, nur dessen Inhalte zeigen
+  const myPosts = useMemo(() => {
+    if (!user?.clientName) return posts          // kein Filter → alle sichtbar
+    return posts.filter(p => p.client === user.clientName)
+  }, [posts, user?.clientName])
+
+  const myArticles = useMemo(() => {
+    if (!user?.clientName) return articles
+    return articles.filter(a => a.client === user.clientName || !a.client)
+  }, [articles, user?.clientName])
+
   // Computed stats
   const stats = useMemo(() => ({
-    pendingApproval: posts.filter(p => p.stage === 3).length,
-    inProgress:      posts.filter(p => p.stage === 1 || p.stage === 2).length,
-    approved:        posts.filter(p => p.stage === 4).length,
-    published:       posts.filter(p => p.stage === 5).length,
-    articlesReview:  articles.filter(a => a.status === 'review').length,
-    articlesLive:    articles.filter(a => a.status === 'published').length,
-  }), [posts, articles])
+    pendingApproval: myPosts.filter(p => p.stage === 3).length,
+    inProgress:      myPosts.filter(p => p.stage === 1 || p.stage === 2).length,
+    approved:        myPosts.filter(p => p.stage === 4).length,
+    published:       myPosts.filter(p => p.stage === 5).length,
+    articlesReview:  myArticles.filter(a => a.status === 'review').length,
+    articlesLive:    myArticles.filter(a => a.status === 'published').length,
+  }), [myPosts, myArticles])
 
   // Posts grouped by status
-  const pendingPosts  = useMemo(() => posts.filter(p => p.stage === 3), [posts])
-  const inWorkPosts   = useMemo(() => posts.filter(p => p.stage === 1 || p.stage === 2), [posts])
-  const donePosts     = useMemo(() => posts.filter(p => p.stage === 4 || p.stage === 5)
-    .sort((a, b) => (b.stage - a.stage)), [posts])
+  const pendingPosts  = useMemo(() => myPosts.filter(p => p.stage === 3), [myPosts])
+  const inWorkPosts   = useMemo(() => myPosts.filter(p => p.stage === 1 || p.stage === 2), [myPosts])
+  const donePosts     = useMemo(() => myPosts.filter(p => p.stage === 4 || p.stage === 5)
+    .sort((a, b) => (b.stage - a.stage)), [myPosts])
 
   const recentArticles = useMemo(() =>
-    [...articles].sort((a, b) => {
+    [...myArticles].sort((a, b) => {
       const order = { review: 0, approved: 1, published: 2, draft: 3 }
       return (order[a.status] ?? 3) - (order[b.status] ?? 3)
     }).slice(0, 6),
-  [articles])
+  [myArticles])
 
   function openPost(post) {
     setSelectedPost(post)
@@ -92,14 +105,22 @@ export default function ClientPortal({ posts, articles, onUpdatePost, onUpdateAr
     <div className="space-y-8">
 
       {/* ── Begrüßung ────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
-          <Sparkles className="w-5 h-5 text-white" />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Mein Portal</h2>
+            <p className="text-sm text-gray-500">Übersicht über alle Inhalte und anstehende Freigaben</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Mein Portal</h2>
-          <p className="text-sm text-gray-500">Übersicht über alle Inhalte und anstehende Freigaben</p>
-        </div>
+        {user?.clientName && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-50 dark:bg-brand-900/20 rounded-lg shrink-0">
+            <Link2 className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
+            <span className="text-sm font-medium text-brand-700 dark:text-brand-400">{user.clientName}</span>
+          </div>
+        )}
       </div>
 
       {/* ── Stat-Karten ──────────────────────────────────────── */}

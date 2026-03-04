@@ -134,15 +134,15 @@ function AppContent() {
       case VIEWS.KEYWORD_EXPLORER:
         return isClient ? clientFallback : <KeywordExplorer />
       case VIEWS.SOCIAL_HUB:
-        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} clients={clients} />
+        return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} clients={clients} clientName={user?.clientName || null} />
       case VIEWS.SEO_CONTENT:
-        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} clients={clients} />
+        return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} clients={clients} clientName={user?.clientName || null} />
       case VIEWS.DASHBOARD:
         return isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />
       case VIEWS.POST_ANALYTICS:
         return isClient ? clientFallback : <PostAnalytics posts={posts} />
       case VIEWS.USER_MANAGEMENT:
-        return isAdmin ? <UserManagement /> : (isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />)
+        return isAdmin ? <UserManagement clients={clients} /> : (isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />)
       case VIEWS.CLIENT_MANAGEMENT:
         return isClient ? clientFallback : <ClientManagement clients={clients} />
       default:

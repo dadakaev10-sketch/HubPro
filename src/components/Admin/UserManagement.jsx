@@ -33,7 +33,7 @@ const roleConfig = {
   Kunde:   { icon: User,     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',label: 'Kunde' },
 }
 
-export default function UserManagement() {
+export default function UserManagement({ clients = [] }) {
   const { addNotification } = useApp()
   const [users, setUsers]                       = useState([])
   const [loading, setLoading]                   = useState(true)
@@ -41,13 +41,13 @@ export default function UserManagement() {
   const [submitting, setSubmitting]             = useState(false)
   const [showPassword, setShowPassword]         = useState(false)
   const [form, setForm]                         = useState(emptyForm())
-  const [createdCredentials, setCreatedCredentials] = useState(null) // { name, email, password }
-  const [copiedField, setCopiedField]           = useState(null)     // 'email' | 'password'
+  const [createdCredentials, setCreatedCredentials] = useState(null)
+  const [copiedField, setCopiedField]           = useState(null)
   const [sendingEmail, setSendingEmail]         = useState(false)
-  const [emailSentFor, setEmailSentFor]         = useState(null)     // userId
+  const [emailSentFor, setEmailSentFor]         = useState(null)
 
   function emptyForm() {
-    return { name: '', email: '', password: '', role: 'Agentur', avatar: '' }
+    return { name: '', email: '', password: '', role: 'Agentur', clientId: '', clientName: '' }
   }
 
   useEffect(() => { loadUsers() }, [])
@@ -71,10 +71,16 @@ export default function UserManagement() {
       await signOut(secondaryAuth)
 
       const avatar = form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-      await setDoc(doc(db, `${DB_BASE_PATH}/users`, user.uid), {
+      const docData = {
         name: form.name, email: form.email, role: form.role, avatar,
         createdAt: new Date().toISOString(),
-      })
+      }
+      // Kunden-Verknüpfung nur wenn gesetzt
+      if (form.role === 'Kunde' && form.clientId) {
+        docData.clientId   = form.clientId
+        docData.clientName = form.clientName
+      }
+      await setDoc(doc(db, `${DB_BASE_PATH}/users`, user.uid), docData)
 
       // Zugangsdaten merken → Modal anzeigen
       setCreatedCredentials({ name: form.name, email: form.email, password: form.password })
@@ -307,6 +313,44 @@ export default function UserManagement() {
                   })}
                 </div>
               </div>
+              {/* Kunden-Zuordnung (nur bei Rolle Kunde) */}
+              {form.role === 'Kunde' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Zugehöriger Kunde
+                    <span className="ml-1 text-xs text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  {clients.length === 0 ? (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                      Noch keine Kunden angelegt. Zuerst in der Kundenverwaltung einen Kunden erstellen.
+                    </p>
+                  ) : (
+                    <select
+                      value={form.clientId}
+                      onChange={e => {
+                        const selected = clients.find(c => c.id === e.target.value)
+                        setForm(f => ({
+                          ...f,
+                          clientId:   selected?.id   || '',
+                          clientName: selected?.company || '',
+                        }))
+                      }}
+                      className="input w-full"
+                    >
+                      <option value="">— Keinem Kunden zuordnen —</option>
+                      {clients.map(c => (
+                        <option key={c.id} value={c.id}>{c.company}</option>
+                      ))}
+                    </select>
+                  )}
+                  {form.clientName && (
+                    <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                      ✓ Dieser User sieht nur Posts und Artikel von „{form.clientName}"
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="btn-secondary flex-1 justify-center">
                   Abbrechen

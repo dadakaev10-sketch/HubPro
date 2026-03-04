@@ -37,6 +37,9 @@ async function fetchUserProfile(firebaseUser) {
       name: data.name || firebaseUser.displayName || firebaseUser.email,
       role: data.role || ROLES.CLIENT,
       avatar: data.avatar || firebaseUser.email?.slice(0, 2).toUpperCase(),
+      // Kunden-Verknüpfung (optional)
+      clientId:   data.clientId   || null,
+      clientName: data.clientName || null,
     }
   }
   // Neu-Registrierung: Standard-Rolle Kunde
