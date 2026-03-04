@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { X, Instagram, Linkedin, Facebook, Video, Send, MessageSquare, Clock, Image, Trash2, Zap } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { X, Instagram, Linkedin, Facebook, Video, Send, MessageSquare, Clock, Image, Trash2, Zap, Upload } from 'lucide-react'
 import ViralAnalyzer from './ViralAnalyzer'
 
 const STAGES = ['Content Dump', 'In Bearbeitung', 'Internes Review', 'Approval', 'Freigegeben', 'Published']
@@ -23,8 +23,17 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
   const [newComment, setNewComment] = useState('')
   const [trackChanges, setTrackChanges] = useState([])
   const [showViralAnalyzer, setShowViralAnalyzer] = useState(false)
+  const [localImage, setLocalImage] = useState(null) // { previewUrl } — nur für lokale Vorschau
+  const imageRef = useRef(null)
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
+
+  function handleImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = (e) => setLocalImage({ previewUrl: e.target.result })
+    reader.readAsDataURL(file)
+  }
 
   const addComment = () => {
     if (!newComment.trim()) return
@@ -170,9 +179,32 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
                 {/* Preview */}
                 <div className="card p-4">
                   <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Vorschau</h4>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-lg aspect-square flex items-center justify-center mb-3">
-                    <Image className="w-12 h-12 text-gray-300 dark:text-gray-500" />
+                  <div
+                    className={`bg-gray-100 dark:bg-gray-700 rounded-lg aspect-square flex items-center justify-center mb-3 overflow-hidden relative group ${!isClient ? 'cursor-pointer' : ''}`}
+                    onClick={() => !isClient && imageRef.current?.click()}
+                    onDragOver={(e) => { if (!isClient) e.preventDefault() }}
+                    onDrop={(e) => { e.preventDefault(); if (!isClient) handleImageFile(e.dataTransfer.files[0]) }}
+                  >
+                    {localImage?.previewUrl || form.assetUrl ? (
+                      <img
+                        src={localImage?.previewUrl || form.assetUrl}
+                        alt="Vorschau"
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Image className="w-12 h-12 text-gray-300 dark:text-gray-500" />
+                        {!isClient && <p className="text-xs text-gray-400">Klicken oder Bild hierher ziehen</p>}
+                      </div>
+                    )}
+                    {!isClient && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                        <Upload className="w-8 h-8 text-white" />
+                      </div>
+                    )}
                   </div>
+                  <input ref={imageRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleImageFile(e.target.files[0])} />
                   <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-4">{form.content || 'Kein Text vorhanden'}</p>
                 </div>
 
@@ -272,8 +304,9 @@ export default function PostEditor({ post, onClose, onSave, isClient, clients = 
         <ViralAnalyzer
           platform={form.platform}
           onClose={() => setShowViralAnalyzer(false)}
-          onUseCaption={(caption) => {
+          onUseCaption={({ caption, image }) => {
             update('content', caption)
+            if (image) setLocalImage(image)
             setShowViralAnalyzer(false)
           }}
         />

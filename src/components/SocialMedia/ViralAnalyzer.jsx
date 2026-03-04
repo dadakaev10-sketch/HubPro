@@ -221,7 +221,7 @@ export default function ViralAnalyzer({ platform, onClose, onUseCaption }) {
                     { key: 'cta', label: 'Call-to-Action' },
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-start gap-2 p-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-brand-400 cursor-pointer transition-colors group"
-                      onClick={() => onUseCaption(result.captions[key])}
+                      onClick={() => onUseCaption({ caption: result.captions[key], image })}
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-[10px] text-brand-600 font-semibold mb-0.5">{label}</p>
