@@ -6,7 +6,7 @@ import {
 import { collection, doc, setDoc, updateDoc, getDocs, query, where } from 'firebase/firestore'
 import { getApps, initializeApp } from 'firebase/app'
 import { getAuth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth'
-import { clientsService } from '../../services/firestore'
+import { clientsService, notificationsService } from '../../services/firestore'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { auth, db, DB_BASE_PATH, isFirebaseConfigured } from '../../config/firebase'
@@ -154,6 +154,21 @@ export default function ClientManagement({ clients }) {
       })
       setLoginClient(null)
       addNotification({ type: 'success', message: `Login für ${loginClient.company} erstellt` })
+
+      // Admin über neuen Kunden-Login benachrichtigen
+      try {
+        await notificationsService.create({
+          type: 'user_registered',
+          message: `Neuer Kunden-Login für „${loginClient.company}" erstellt`,
+          recipientId: null,
+          recipientRole: 'Admin',
+          clientName: loginClient.company,
+          createdBy: user?.id || '',
+          createdByName: user?.name || '',
+          refCollection: null,
+          refId: null,
+        })
+      } catch (e) { /* non-critical */ }
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         // Account existiert bereits → Firestore-Profil suchen und verknüpfen
@@ -175,6 +190,21 @@ export default function ClientManagement({ clients }) {
             })
             setLoginClient(null)
             addNotification({ type: 'success', message: `Bestehender Account mit ${loginClient.company} verknüpft` })
+
+            // Admin benachrichtigen
+            try {
+              await notificationsService.create({
+                type: 'user_registered',
+                message: `Account mit „${loginClient.company}" verknüpft`,
+                recipientId: null,
+                recipientRole: 'Admin',
+                clientName: loginClient.company,
+                createdBy: user?.id || '',
+                createdByName: user?.name || '',
+                refCollection: null,
+                refId: null,
+              })
+            } catch (e) { /* non-critical */ }
           } else {
             addNotification({ type: 'error', message: 'Account existiert in Firebase Auth, aber kein Profil gefunden. Bitte in der User-Verwaltung prüfen.' })
           }

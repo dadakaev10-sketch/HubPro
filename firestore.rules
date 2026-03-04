@@ -72,6 +72,19 @@ service cloud.firestore {
       );
     }
 
+    // ── Benachrichtigungen ──────────────────────────────────────────────────
+    match /artifacts/{appId}/public/data/notifications/{notifId} {
+      // Jeder authentifizierte User darf lesen und erstellen
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      // Update nur erlaubt wenn ausschließlich readBy geändert wird (markRead)
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['readBy']);
+      // Löschen nur Admin
+      allow delete: if request.auth != null &&
+        get(/databases/$(database)/documents/artifacts/$(appId)/public/data/users/$(request.auth.uid)).data.role == 'Admin';
+    }
+
     // ── Kunden (Clients) ───────────────────────────────────────────────────
     match /artifacts/{appId}/public/data/clients/{clientId} {
       // Nur Admin & Agentur dürfen Kunden sehen und verwalten

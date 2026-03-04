@@ -12,12 +12,12 @@ import PostAnalytics from './components/Analytics/PostAnalytics'
 import UserManagement from './components/Admin/UserManagement'
 import ClientManagement from './components/Admin/ClientManagement'
 import ClientPortal from './components/Client/ClientPortal'
-import { socialPostsService, seoArticlesService, clientsService } from './services/firestore'
+import { socialPostsService, seoArticlesService, clientsService, notificationsService } from './services/firestore'
 import { isFirebaseConfigured } from './config/firebase'
 
 function AppContent() {
   const { user, isClient, isAdmin, loading: authLoading } = useAuth()
-  const { currentView, setCurrentView, addNotification, VIEWS } = useApp()
+  const { currentView, setCurrentView, addNotification, setFirestoreNotifs, VIEWS } = useApp()
 
   const [posts, setPosts] = useState([])
   const [articles, setArticles] = useState([])
@@ -55,12 +55,31 @@ function AppContent() {
       setClients(data)
     })
 
+    // Echtzeit-Benachrichtigungen – alle laden, client-seitig filtern
+    const unsubNotifs = notificationsService.subscribe((allNotifs) => {
+      const relevant = allNotifs.filter(n => {
+        // Eigene Aktionen nicht anzeigen
+        if (n.createdBy === user.id) return false
+        // Direkt an mich adressiert
+        if (n.recipientId === user.id) return true
+        // An meine Rolle adressiert
+        if (n.recipientRole === user.role) {
+          // Kunden sehen nur Notifications ihrer Firma
+          if (user.role === 'Kunde') return n.clientName === user.clientName
+          return true
+        }
+        return false
+      })
+      setFirestoreNotifs(relevant)
+    })
+
     return () => {
       unsubPosts()
       unsubArticles()
       unsubClients()
+      unsubNotifs()
     }
-  }, [user])
+  }, [user, setFirestoreNotifs])
 
   const handleUpdatePost = useCallback(async (updatedPost) => {
     if (!isFirebaseConfigured) {
@@ -74,18 +93,60 @@ function AppContent() {
       return
     }
     try {
-      if (updatedPost.id && posts.find(p => p.id === updatedPost.id)) {
+      const isExisting = updatedPost.id && posts.find(p => p.id === updatedPost.id)
+      if (isExisting) {
         const { id, ...data } = updatedPost
         await socialPostsService.update(id, data)
       } else {
         await socialPostsService.create(updatedPost)
       }
       addNotification({ type: 'success', message: 'Post erfolgreich gespeichert' })
+
+      // ── Cross-User Notification erstellen ──
+      try {
+        const oldPost = isExisting ? posts.find(p => p.id === updatedPost.id) : null
+        const statusChanged = oldPost && oldPost.status !== updatedPost.status
+
+        if (isClient) {
+          // Kunde hat etwas geändert → Agentur benachrichtigen
+          const isApproval = statusChanged && (updatedPost.status === 'approved' || updatedPost.status === 'published')
+          await notificationsService.create({
+            type: isApproval ? 'post_approved' : 'post_updated',
+            message: isApproval
+              ? `${user.name} hat Post „${updatedPost.title}" freigegeben`
+              : `${user.name} hat Post „${updatedPost.title}" kommentiert`,
+            recipientId: updatedPost.createdBy || null,
+            recipientRole: 'Agentur',
+            clientName: updatedPost.client || user.clientName || null,
+            createdBy: user.id,
+            createdByName: user.name,
+            refCollection: 'social_posts',
+            refId: updatedPost.id || null,
+          })
+        } else {
+          // Agentur/Admin hat etwas geändert → Kunde benachrichtigen
+          if (updatedPost.client) {
+            await notificationsService.create({
+              type: 'post_updated',
+              message: `${user.name} hat Post „${updatedPost.title}" aktualisiert`,
+              recipientId: null,
+              recipientRole: 'Kunde',
+              clientName: updatedPost.client,
+              createdBy: user.id,
+              createdByName: user.name,
+              refCollection: 'social_posts',
+              refId: updatedPost.id || null,
+            })
+          }
+        }
+      } catch (notifErr) {
+        console.warn('Notification konnte nicht erstellt werden:', notifErr)
+      }
     } catch (err) {
       console.error(err)
       addNotification({ type: 'error', message: 'Fehler beim Speichern' })
     }
-  }, [posts, addNotification])
+  }, [posts, addNotification, user, isClient])
 
   const handleUpdateArticle = useCallback(async (updatedArticle) => {
     if (!isFirebaseConfigured) {
@@ -99,18 +160,62 @@ function AppContent() {
       return
     }
     try {
-      if (updatedArticle.id && articles.find(a => a.id === updatedArticle.id)) {
+      const isExisting = updatedArticle.id && articles.find(a => a.id === updatedArticle.id)
+      if (isExisting) {
         const { id, ...data } = updatedArticle
         await seoArticlesService.update(id, data)
       } else {
         await seoArticlesService.create(updatedArticle)
       }
       addNotification({ type: 'success', message: 'Artikel erfolgreich gespeichert' })
+
+      // ── Cross-User Notification erstellen ──
+      try {
+        const oldArticle = isExisting ? articles.find(a => a.id === updatedArticle.id) : null
+        const statusChanged = oldArticle && oldArticle.status !== updatedArticle.status
+
+        if (isClient) {
+          // Kunde hat Status geändert → Agentur benachrichtigen
+          const isApproval = statusChanged && (updatedArticle.status === 'approved' || updatedArticle.status === 'published')
+          if (statusChanged) {
+            await notificationsService.create({
+              type: isApproval ? 'article_approved' : 'article_updated',
+              message: isApproval
+                ? `${user.name} hat Artikel „${updatedArticle.title}" freigegeben`
+                : `${user.name} hat Artikel „${updatedArticle.title}" aktualisiert`,
+              recipientId: updatedArticle.createdBy || null,
+              recipientRole: 'Agentur',
+              clientName: updatedArticle.client || user.clientName || null,
+              createdBy: user.id,
+              createdByName: user.name,
+              refCollection: 'seo_articles',
+              refId: updatedArticle.id || null,
+            })
+          }
+        } else {
+          // Agentur/Admin hat Artikel geändert → Kunde benachrichtigen
+          if (updatedArticle.client) {
+            await notificationsService.create({
+              type: 'article_updated',
+              message: `${user.name} hat Artikel „${updatedArticle.title}" aktualisiert`,
+              recipientId: null,
+              recipientRole: 'Kunde',
+              clientName: updatedArticle.client,
+              createdBy: user.id,
+              createdByName: user.name,
+              refCollection: 'seo_articles',
+              refId: updatedArticle.id || null,
+            })
+          }
+        }
+      } catch (notifErr) {
+        console.warn('Notification konnte nicht erstellt werden:', notifErr)
+      }
     } catch (err) {
       console.error(err)
       addNotification({ type: 'error', message: 'Fehler beim Speichern' })
     }
-  }, [articles, addNotification])
+  }, [articles, addNotification, user, isClient])
 
   if (authLoading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">

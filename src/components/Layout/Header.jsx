@@ -1,7 +1,8 @@
-import { Bell, Moon, Sun, Menu, LogOut, ChevronDown, CheckCircle, AlertCircle, Info } from 'lucide-react'
-import { useState, useRef, useEffect } from 'react'
+import { Bell, Moon, Sun, Menu, LogOut, ChevronDown, CheckCircle, AlertCircle, Info, UserPlus, FileText, MessageSquare } from 'lucide-react'
+import { useState, useRef, useEffect, useMemo } from 'react'
 import { useApp } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { notificationsService } from '../../services/firestore'
 
 const viewTitles = {
   'social-discovery': 'Social Discovery',
@@ -13,31 +14,49 @@ const viewTitles = {
 }
 
 function NotifIcon({ type }) {
-  if (type === 'success') return <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-  if (type === 'error')   return <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-  if (type === 'warning') return <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
+  if (type === 'post_approved' || type === 'article_approved')
+    return <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+  if (type === 'post_updated' || type === 'article_updated')
+    return <FileText className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+  if (type === 'comment_added')
+    return <MessageSquare className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+  if (type === 'user_registered')
+    return <UserPlus className="w-4 h-4 text-brand-500 flex-shrink-0 mt-0.5" />
+  if (type === 'error')
+    return <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
   return <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
 }
 
-function formatTime(iso) {
-  const diff = Math.floor((Date.now() - new Date(iso)) / 1000)
-  if (diff < 10)   return 'Gerade eben'
-  if (diff < 60)   return `vor ${diff} Sek.`
-  if (diff < 3600) return `vor ${Math.floor(diff / 60)} Min.`
+function formatTime(ts) {
+  if (!ts) return ''
+  // Firestore Timestamp → Date
+  const date = ts?.toDate ? ts.toDate() : new Date(ts)
+  const diff = Math.floor((Date.now() - date) / 1000)
+  if (diff < 10)    return 'Gerade eben'
+  if (diff < 60)    return `vor ${diff} Sek.`
+  if (diff < 3600)  return `vor ${Math.floor(diff / 60)} Min.`
   if (diff < 86400) return `vor ${Math.floor(diff / 3600)} Std.`
-  return new Date(iso).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+  return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
 }
 
 export default function Header() {
   const {
     currentView, darkMode, toggleDarkMode, sidebarOpen, toggleSidebar,
-    notificationHistory, unreadCount, markNotificationsRead,
+    firestoreNotifs,
   } = useApp()
   const { user, logout } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
   const [bellOpen, setBellOpen] = useState(false)
   const menuRef = useRef(null)
   const bellRef = useRef(null)
+
+  // Ungelesene berechnen
+  const unreadNotifs = useMemo(() => {
+    if (!user?.id || !firestoreNotifs) return []
+    return firestoreNotifs.filter(n => !n.readBy?.includes(user.id))
+  }, [firestoreNotifs, user?.id])
+
+  const unreadCount = unreadNotifs.length
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -52,7 +71,13 @@ export default function Header() {
     e.stopPropagation()
     setBellOpen(prev => {
       const next = !prev
-      if (next && markNotificationsRead) markNotificationsRead()
+      // Beim Öffnen alle als gelesen markieren
+      if (next && unreadNotifs.length > 0 && user?.id) {
+        notificationsService.markAllRead(
+          unreadNotifs.map(n => n.id),
+          user.id
+        ).catch(() => {})
+      }
       return next
     })
   }
@@ -99,31 +124,39 @@ export default function Header() {
               {/* Header */}
               <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Benachrichtigungen</h3>
-                {notificationHistory.length > 0 && (
-                  <span className="text-xs text-gray-400">{notificationHistory.length} gesamt</span>
+                {firestoreNotifs?.length > 0 && (
+                  <span className="text-xs text-gray-400">{firestoreNotifs.length} gesamt</span>
                 )}
               </div>
 
               {/* List */}
               <div className="max-h-80 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700/50">
-                {notificationHistory.length === 0 ? (
+                {!firestoreNotifs?.length ? (
                   <div className="py-10 text-center text-gray-400">
                     <Bell className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">Keine Benachrichtigungen</p>
                   </div>
                 ) : (
-                  notificationHistory.map(n => (
-                    <div
-                      key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
-                    >
-                      <NotifIcon type={n.type} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-700 dark:text-gray-200 leading-snug">{n.message}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatTime(n.timestamp)}</p>
+                  firestoreNotifs.map(n => {
+                    const isUnread = !n.readBy?.includes(user?.id)
+                    return (
+                      <div
+                        key={n.id}
+                        className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors ${isUnread ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
+                      >
+                        <NotifIcon type={n.type} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm leading-snug ${isUnread ? 'font-medium text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-200'}`}>
+                            {n.message}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">{formatTime(n.createdAt)}</p>
+                        </div>
+                        {isUnread && (
+                          <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 flex-shrink-0" />
+                        )}
                       </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
               </div>
             </div>

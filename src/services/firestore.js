@@ -16,7 +16,10 @@ import {
   onSnapshot,
   query,
   orderBy,
+  limit,
   serverTimestamp,
+  arrayUnion,
+  writeBatch,
 } from 'firebase/firestore'
 import { db, DB_BASE_PATH, isFirebaseConfigured } from '../config/firebase'
 import { socialPosts, seoArticles, clients as mockClients } from '../data/mockData'
@@ -179,6 +182,39 @@ export const clientsService = {
   async delete(id) {
     if (!isFirebaseConfigured) throw new Error('Firebase nicht konfiguriert')
     await deleteDoc(docRef('clients', id))
+  },
+}
+
+// ─── Benachrichtigungen ──────────────────────────────────────────────────────
+
+export const notificationsService = {
+  // Echtzeit-Listener: letzte 80 Notifications laden (client-seitig gefiltert)
+  subscribe(callback) {
+    if (!isFirebaseConfigured) { callback([]); return () => {} }
+    const q = query(colRef('notifications'), orderBy('createdAt', 'desc'), limit(80))
+    return onSnapshot(q, snap => {
+      callback(snap.docs.map(d => ({ ...d.data(), id: d.id })))
+    })
+  },
+
+  // Neue Notification erstellen
+  async create(data) {
+    if (!isFirebaseConfigured) return
+    await addDoc(colRef('notifications'), {
+      ...data,
+      readBy: [],
+      createdAt: serverTimestamp(),
+    })
+  },
+
+  // Mehrere Notifications als gelesen markieren (Batch)
+  async markAllRead(notifIds, userId) {
+    if (!isFirebaseConfigured || !notifIds.length || !userId) return
+    const batch = writeBatch(db)
+    notifIds.forEach(id => {
+      batch.update(docRef('notifications', id), { readBy: arrayUnion(userId) })
+    })
+    await batch.commit()
   },
 }
 
