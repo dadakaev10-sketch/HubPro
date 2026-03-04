@@ -3,7 +3,7 @@ import {
   Building2, Plus, Pencil, Trash2, X, Save, Globe, CheckCircle,
   Eye, EyeOff, KeyRound, Send, Copy, Check, Mail, UserPlus,
 } from 'lucide-react'
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore'
+import { collection, doc, setDoc, updateDoc, getDocs, query, where } from 'firebase/firestore'
 import { getApps, initializeApp } from 'firebase/app'
 import { getAuth, createUserWithEmailAndPassword, signOut, sendPasswordResetEmail } from 'firebase/auth'
 import { clientsService } from '../../services/firestore'
@@ -150,12 +150,41 @@ export default function ClientManagement({ clients }) {
         name:     loginClient.name || loginClient.company,
         email:    loginForm.email,
         password: loginForm.password,
+        linked:   false,
       })
       setLoginClient(null)
       addNotification({ type: 'success', message: `Login für ${loginClient.company} erstellt` })
     } catch (err) {
+      if (err.code === 'auth/email-already-in-use') {
+        // Account existiert bereits → Firestore-Profil suchen und verknüpfen
+        try {
+          const q = query(collection(db, `${DB_BASE_PATH}/users`), where('email', '==', loginForm.email))
+          const snap = await getDocs(q)
+          if (!snap.empty) {
+            const existingRef = doc(db, `${DB_BASE_PATH}/users`, snap.docs[0].id)
+            await updateDoc(existingRef, {
+              clientId:   loginClient.id,
+              clientName: loginClient.company,
+              role:       'Kunde',
+            })
+            setCredentials({
+              name:     loginClient.name || loginClient.company,
+              email:    loginForm.email,
+              password: null,   // Passwort unbekannt – Login-Link anbieten
+              linked:   true,   // bestehender Account
+            })
+            setLoginClient(null)
+            addNotification({ type: 'success', message: `Bestehender Account mit ${loginClient.company} verknüpft` })
+          } else {
+            addNotification({ type: 'error', message: 'Account existiert in Firebase Auth, aber kein Profil gefunden. Bitte in der User-Verwaltung prüfen.' })
+          }
+        } catch (linkErr) {
+          addNotification({ type: 'error', message: linkErr.message })
+        }
+        setLoginSubmitting(false)
+        return
+      }
       const msgs = {
-        'auth/email-already-in-use':   'Diese E-Mail hat bereits einen Login-Account.',
         'auth/weak-password':          'Passwort muss mindestens 6 Zeichen haben.',
         'auth/invalid-email':          'Ungültige E-Mail-Adresse.',
         'auth/operation-not-allowed':  'E-Mail/Passwort-Login ist in Firebase nicht aktiviert.',
@@ -484,14 +513,19 @@ export default function ClientManagement({ clients }) {
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${credentials.linked ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-green-100 dark:bg-green-900/30'}`}>
+                  <CheckCircle className={`w-5 h-5 ${credentials.linked ? 'text-blue-600 dark:text-blue-400' : 'text-green-600 dark:text-green-400'}`} />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    Account erstellt!
+                    {credentials.linked ? 'Account verknüpft!' : 'Account erstellt!'}
                   </h3>
-                  <p className="text-sm text-gray-500">Zugangsdaten für {credentials.name}</p>
+                  <p className="text-sm text-gray-500">
+                    {credentials.linked
+                      ? `Bestehender Account mit ${credentials.name} verbunden`
+                      : `Zugangsdaten für ${credentials.name}`
+                    }
+                  </p>
                 </div>
               </div>
             </div>
@@ -518,29 +552,34 @@ export default function ClientManagement({ clients }) {
                 </div>
               </div>
 
-              {/* Passwort */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-                  Passwort
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm font-mono text-gray-800 dark:text-gray-200 select-all">
-                    {credentials.password}
+              {/* Passwort – nur bei neuem Account */}
+              {credentials.password && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                    Passwort
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-700 rounded-lg px-3 py-2 text-sm font-mono text-gray-800 dark:text-gray-200 select-all">
+                      {credentials.password}
+                    </div>
+                    <button
+                      onClick={() => handleCopy(credentials.password, 'password')}
+                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      {copiedField === 'password'
+                        ? <Check className="w-4 h-4 text-green-500" />
+                        : <Copy className="w-4 h-4 text-gray-500" />
+                      }
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleCopy(credentials.password, 'password')}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    {copiedField === 'password'
-                      ? <Check className="w-4 h-4 text-green-500" />
-                      : <Copy className="w-4 h-4 text-gray-500" />
-                    }
-                  </button>
                 </div>
-              </div>
+              )}
 
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-                💡 Teile die Zugangsdaten sicher mit dem Kunden oder sende ihm einen Login-Link per E-Mail.
+                {credentials.linked
+                  ? '🔗 Bestehender Account wurde mit dieser Firma verknüpft. Sende dem Kunden einen Login-Link per E-Mail.'
+                  : '💡 Teile die Zugangsdaten sicher mit dem Kunden oder sende ihm einen Login-Link per E-Mail.'
+                }
               </div>
 
               {/* Aktionen */}
