@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 const AppContext = createContext(null)
 
 const VIEWS = {
+  CLIENT_PORTAL: 'client-portal',
   SOCIAL_DISCOVERY: 'social-discovery',
   KEYWORD_EXPLORER: 'keyword-explorer',
   SOCIAL_HUB: 'social-hub',

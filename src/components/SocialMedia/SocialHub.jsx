@@ -37,14 +37,15 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [] 
       const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         post.content.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesPlatform = filterPlatform === 'all' || post.platform === filterPlatform
-      // Clients only see Approval stage
-      const matchesRole = !isClient || post.stage === 3
+      // Clients sehen alle Stages außer Stage 0 (Content Dump – interne Ideensammlung)
+      const matchesRole = !isClient || post.stage >= 1
       return matchesSearch && matchesPlatform && matchesRole
     })
   }, [posts, searchTerm, filterPlatform, isClient])
 
   const postsByStage = useMemo(() => {
-    const stages = isClient ? STAGES.filter(s => s.id === 3) : STAGES
+    // Kunden sehen Stages 1-5 (kein interner Content Dump)
+    const stages = isClient ? STAGES.filter(s => s.id >= 1) : STAGES
     return stages.map(stage => ({
       ...stage,
       posts: filteredPosts.filter(p => p.stage === stage.id),
@@ -115,6 +116,11 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [] 
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${stage.color}`} />
                   <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{stage.label}</h3>
+                  {isClient && stage.id === 3 && stage.posts.length > 0 && (
+                    <span className="badge bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-[10px] font-semibold animate-pulse">
+                      Aktion
+                    </span>
+                  )}
                 </div>
                 <span className="badge bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                   {stage.posts.length}

@@ -11,17 +11,30 @@ import PerformanceDashboard from './components/Analytics/PerformanceDashboard'
 import PostAnalytics from './components/Analytics/PostAnalytics'
 import UserManagement from './components/Admin/UserManagement'
 import ClientManagement from './components/Admin/ClientManagement'
+import ClientPortal from './components/Client/ClientPortal'
 import { socialPostsService, seoArticlesService, clientsService } from './services/firestore'
 import { isFirebaseConfigured } from './config/firebase'
 
 function AppContent() {
   const { user, isClient, isAdmin, loading: authLoading } = useAuth()
-  const { currentView, addNotification } = useApp()
+  const { currentView, setCurrentView, addNotification, VIEWS } = useApp()
 
   const [posts, setPosts] = useState([])
   const [articles, setArticles] = useState([])
   const [clients, setClients] = useState([])
   const [dataLoading, setDataLoading] = useState(true)
+
+  // Kunden landen beim Login direkt im Client-Portal
+  useEffect(() => {
+    if (user && isClient) {
+      const hash = window.location.hash.slice(1)
+      // Nur umleiten wenn kein gültiger Kunden-Hash gesetzt ist
+      const clientViews = new Set([VIEWS.CLIENT_PORTAL, VIEWS.SOCIAL_HUB, VIEWS.SEO_CONTENT])
+      if (!clientViews.has(hash)) {
+        setCurrentView(VIEWS.CLIENT_PORTAL)
+      }
+    }
+  }, [user, isClient, setCurrentView, VIEWS])
 
   // Echtzeit-Listener für Firestore (oder Mock-Daten Fallback)
   useEffect(() => {
@@ -110,25 +123,30 @@ function AppContent() {
   if (!user) return <LoginPage />
 
   const renderView = () => {
+    // Kunden die direkt auf eine Agentur-Seite navigieren → zurück zum Portal
+    const clientFallback = <ClientPortal posts={posts} articles={articles} onUpdatePost={handleUpdatePost} onUpdateArticle={handleUpdateArticle} clients={clients} />
+
     switch (currentView) {
+      case VIEWS.CLIENT_PORTAL:
+        return clientFallback
       case VIEWS.SOCIAL_DISCOVERY:
-        return <SocialDiscovery />
+        return isClient ? clientFallback : <SocialDiscovery />
       case VIEWS.KEYWORD_EXPLORER:
-        return <KeywordExplorer />
+        return isClient ? clientFallback : <KeywordExplorer />
       case VIEWS.SOCIAL_HUB:
         return <SocialHub posts={posts} onUpdatePost={handleUpdatePost} isClient={isClient} loading={dataLoading} clients={clients} />
       case VIEWS.SEO_CONTENT:
         return <SEOHub articles={articles} onUpdateArticle={handleUpdateArticle} isClient={isClient} loading={dataLoading} clients={clients} />
       case VIEWS.DASHBOARD:
-        return <PerformanceDashboard posts={posts} articles={articles} />
+        return isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />
       case VIEWS.POST_ANALYTICS:
-        return <PostAnalytics posts={posts} />
+        return isClient ? clientFallback : <PostAnalytics posts={posts} />
       case VIEWS.USER_MANAGEMENT:
-        return isAdmin ? <UserManagement /> : <PerformanceDashboard posts={posts} articles={articles} />
+        return isAdmin ? <UserManagement /> : (isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />)
       case VIEWS.CLIENT_MANAGEMENT:
-        return <ClientManagement clients={clients} />
+        return isClient ? clientFallback : <ClientManagement clients={clients} />
       default:
-        return <PerformanceDashboard posts={posts} articles={articles} />
+        return isClient ? clientFallback : <PerformanceDashboard posts={posts} articles={articles} />
     }
   }
 

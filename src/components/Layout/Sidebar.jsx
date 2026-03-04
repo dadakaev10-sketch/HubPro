@@ -13,11 +13,18 @@ import {
   Activity,
   Users,
   Building2,
+  Home,
 } from 'lucide-react'
 import { useApp, VIEWS } from '../../contexts/AppContext'
 import { useAuth } from '../../contexts/AuthContext'
 
 const menuSections = [
+  {
+    title: 'Mein Bereich',
+    items: [
+      { id: VIEWS.CLIENT_PORTAL, label: 'Mein Portal', icon: Home, clientOnly: true },
+    ],
+  },
   {
     title: 'Strategie & Recherche',
     items: [
@@ -77,7 +84,8 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-3">
         {menuSections.map((section) => {
           const visibleItems = section.items.filter(item => {
-            if (item.agencyOnly && isClient) return false
+            if (item.clientOnly && !isClient) return false   // Nur für Kunden
+            if (item.agencyOnly && isClient) return false    // Nur für Agentur
             if (item.adminOnly && !isAdmin) return false
             if (item.adminOrAgency && isClient) return false
             return true
