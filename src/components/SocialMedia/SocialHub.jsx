@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
-import { Plus, Filter, Search, Instagram, Linkedin, Facebook, Video, GripVertical, MessageSquare, Calendar, Eye, MoreHorizontal, ChevronRight, Image } from 'lucide-react'
+import { Plus, Filter, Search, Instagram, Linkedin, Facebook, Video, GripVertical, MessageSquare, Calendar, Eye, MoreHorizontal, ChevronRight, Image, Trash2 } from 'lucide-react'
 import PostEditor from './PostEditor'
 import { useAuth } from '../../contexts/AuthContext'
+import { socialPostsService } from '../../services/firestore'
+import { useApp } from '../../contexts/AppContext'
 
 const STAGES = [
   { id: 0, label: 'Content Dump', color: 'bg-gray-400', lightBg: 'bg-gray-50 dark:bg-gray-800/50' },
@@ -28,6 +30,7 @@ const platformColors = {
 
 export default function SocialHub({ posts, onUpdatePost, isClient, clients = [], clientName = null }) {
   const { user, isAdmin } = useAuth()
+  const { addNotification } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterPlatform, setFilterPlatform] = useState('all')
   const [selectedPost, setSelectedPost] = useState(null)
@@ -70,6 +73,17 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [],
   const handleNewPost = () => {
     setSelectedPost(null)
     setShowEditor(true)
+  }
+
+  const handleDeletePost = async (e, post) => {
+    e.stopPropagation() // Karte nicht öffnen
+    if (!window.confirm(`Post „${post.title}" wirklich löschen?`)) return
+    try {
+      await socialPostsService.delete(post.id)
+      addNotification({ type: 'success', message: 'Post gelöscht' })
+    } catch (err) {
+      addNotification({ type: 'error', message: err.message })
+    }
   }
 
   return (
@@ -146,15 +160,26 @@ export default function SocialHub({ posts, onUpdatePost, isClient, clients = [],
                     onClick={() => { setSelectedPost(post); setShowEditor(true) }}
                     className="card p-3 cursor-pointer hover:shadow-md transition-all group"
                   >
-                    {/* Platform + Client */}
+                    {/* Platform + Client + Delete */}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-1.5">
                         <PlatformIcon className={`w-4 h-4 ${platformColors[post.platform]}`} />
                         <span className="text-xs font-medium text-gray-500">{post.platform}</span>
                       </div>
-                      {post.client && (
-                        <span className="text-xs text-gray-400">{post.client}</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {post.client && (
+                          <span className="text-xs text-gray-400">{post.client}</span>
+                        )}
+                        {!isClient && (
+                          <button
+                            onClick={(e) => handleDeletePost(e, post)}
+                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-300 hover:text-red-500 transition-all"
+                            title="Post löschen"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Title */}

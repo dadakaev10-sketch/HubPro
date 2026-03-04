@@ -4,9 +4,12 @@ import { getScoreColor, getScoreLabel, getScoreBgColor } from '../../utils/seoSc
 import ArticleEditor from './ArticleEditor'
 import AIContentGenerator from './AIContentGenerator'
 import { useAuth } from '../../contexts/AuthContext'
+import { useApp } from '../../contexts/AppContext'
+import { seoArticlesService } from '../../services/firestore'
 
 export default function SEOHub({ articles, onUpdateArticle, isClient, clients = [] }) {
   const { user, isAdmin } = useAuth()
+  const { addNotification } = useApp()
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [selectedArticle, setSelectedArticle] = useState(null)
@@ -34,6 +37,16 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
   const handleNew = () => {
     setSelectedArticle(null)
     setShowEditor(true)
+  }
+
+  const handleDeleteArticle = async (article) => {
+    if (!window.confirm(`Artikel „${article.title}" wirklich löschen?`)) return
+    try {
+      await seoArticlesService.delete(article.id)
+      addNotification({ type: 'success', message: 'Artikel gelöscht' })
+    } catch (err) {
+      addNotification({ type: 'error', message: err.message })
+    }
   }
 
   const handleAIGenerated = (generated) => {
@@ -165,13 +178,24 @@ export default function SEOHub({ articles, onUpdateArticle, isClient, clients = 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => { setSelectedArticle(article); setShowEditor(true) }}
-                      className="btn-secondary text-xs"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                      {isClient ? 'Ansehen' : 'Bearbeiten'}
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => { setSelectedArticle(article); setShowEditor(true) }}
+                        className="btn-secondary text-xs"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        {isClient ? 'Ansehen' : 'Bearbeiten'}
+                      </button>
+                      {!isClient && (
+                        <button
+                          onClick={() => handleDeleteArticle(article)}
+                          className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                          title="Artikel löschen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
