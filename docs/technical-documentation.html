@@ -2,7 +2,9 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>Content Hub Pro — Technische Dokumentation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -25,11 +27,19 @@
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     html, body {
-      width:100%; height:100%;
+      width:100%;
+      height: 100%;
+      height: 100dvh;
       font-family: 'Inter', sans-serif;
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
+      /* iOS Safari full-height fix */
+      -webkit-overflow-scrolling: touch;
+    }
+    /* iOS Safari full height hack */
+    @supports (-webkit-touch-callout: none) {
+      html, body { height: -webkit-fill-available; }
     }
 
     /* ── Canvas (particle background) ── */
@@ -74,9 +84,13 @@
     /* ── Slide wrapper ── */
     #deck {
       position: fixed;
-      inset: 0;
+      top: 0; left: 0; right: 0;
+      bottom: 80px; /* room for nav */
       z-index: 10;
       perspective: 1200px;
+    }
+    @supports (-webkit-touch-callout: none) {
+      #deck { bottom: 90px; }
     }
 
     /* ── Each slide ── */
@@ -85,11 +99,18 @@
       inset: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      padding: 80px 100px;
+      justify-content: flex-start;
+      padding: 56px 80px 24px;
       opacity: 0;
       pointer-events: none;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* vertically center short slides on desktop */
+    @media (min-width: 769px) {
+      .slide { justify-content: center; padding: 56px 100px; }
+      .slide.cover { justify-content: center; }
     }
     .slide.active {
       opacity: 1;
@@ -472,19 +493,21 @@
     /* ── Nav ── */
     #nav {
       position: fixed;
-      bottom: 32px;
+      bottom: max(20px, env(safe-area-inset-bottom, 16px));
       left: 50%;
       transform: translateX(-50%);
       z-index: 50;
       display: flex;
       align-items: center;
       gap: 18px;
-      background: rgba(10,10,15,.8);
+      background: rgba(10,10,15,.9);
       backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
       border-radius: 60px;
       padding: 10px 22px;
       box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      white-space: nowrap;
     }
     .nav-btn {
       background: none;
@@ -562,10 +585,14 @@
       color: var(--neon);
       background: rgba(124,58,237,.15);
       backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border: 1px solid rgba(168,85,247,.2);
       padding: 6px 14px;
       border-radius: 99px;
       transition: opacity .3s;
+      max-width: 45vw;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* ── Hint ── */
@@ -579,6 +606,10 @@
       opacity: .5;
       letter-spacing: .06em;
       pointer-events: none;
+      white-space: nowrap;
+    }
+    @media (max-width: 768px) {
+      #hint { display: none; }
     }
 
     /* swipe ripple */
@@ -587,15 +618,76 @@
       to   { opacity: 0;   transform: scale(2); }
     }
 
-    /* responsive */
+    /* ── MOBILE ── */
     @media (max-width: 768px) {
-      .slide { padding: 64px 28px 100px; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
-      .card-grid, .card-grid.four { grid-template-columns: repeat(2, 1fr); }
-      .role-grid { grid-template-columns: 1fr; gap: 10px; }
-      h1.mega { font-size: 2.2rem; }
-      h2.section-title { font-size: 1.6rem; }
-      .stages { flex-wrap: wrap; gap: 8px; }
+      .slide {
+        padding: 52px 18px 20px;
+        justify-content: flex-start;
+      }
+      .slide.cover { justify-content: center; padding: 52px 18px 20px; }
+
+      h1.mega { font-size: 2rem; line-height: 1.1; }
+      h2.section-title { font-size: 1.35rem; }
+      .slide-eyebrow { font-size: .68rem; }
+      .lead { font-size: .95rem; margin-top: 10px; }
+
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 14px; }
+      .stat { padding: 14px 10px; }
+      .stat .num { font-size: 1.7rem; }
+
+      .card-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+      .card-grid.two  { grid-template-columns: 1fr; }
+      .card-grid.four { grid-template-columns: 1fr 1fr; }
+      .card { padding: 12px; }
+      .card .card-icon { font-size: 1.2rem; margin-bottom: 6px; }
+      .card h4 { font-size: .82rem; }
+      .card p  { font-size: .75rem; }
+
+      .role-grid { grid-template-columns: 1fr; gap: 8px; }
+      .role-col { padding: 12px; }
+      .role-col li { font-size: .78rem; margin-bottom: 5px; }
+
+      .table-wrap { font-size: .78rem; }
+      thead th, tbody td { padding: 8px 10px; }
+
+      .code { font-size: .72rem; padding: 10px 12px; }
+
+      .stages { flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+      .stage-item { min-width: 80px; padding: 10px 6px; font-size: .68rem; }
+      .stage-item .stage-num { width: 28px; height: 28px; font-size: .85rem; }
+      .stage-item .stage-arrow { display: none; }
+
+      .seo-bar { gap: 8px; }
+      .seo-label { font-size: .72rem; width: 170px; }
+      .seo-pts { font-size: .72rem; }
+
+      .timeline::before { left: 10px; }
+      .tl-item { gap: 14px; }
+      .tl-dot { width: 22px; height: 22px; font-size: .6rem; }
+      .tl-title { font-size: .88rem; }
+      .tl-desc { font-size: .78rem; }
+
+      .fancy-list li { font-size: .8rem; gap: 8px; }
+
+      /* Nav on mobile */
+      #nav { bottom: 16px; padding: 8px 14px; gap: 10px; }
+      .nav-btn { width: 30px; height: 30px; font-size: .85rem; }
+      #counter { font-size: .68rem; min-width: 42px; }
+      .ndot { width: 5px; height: 5px; }
+      .ndot.active { width: 14px; }
+
+      /* Tags */
+      #slideLabel { font-size: .6rem; padding: 4px 10px; top: 16px; right: 14px; }
+      #slideTag   { font-size: .6rem; padding: 4px 10px; top: 16px; left: 14px; }
+      #hint { bottom: 70px; font-size: .6rem; }
+    }
+
+    /* Very small (375px iPhone SE) */
+    @media (max-width: 390px) {
+      .card-grid { grid-template-columns: 1fr; }
+      .card-grid.four { grid-template-columns: 1fr 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stages { justify-content: center; }
     }
   </style>
 </head>
@@ -1274,9 +1366,13 @@ Client: <span class="num">comments + status only</span>
     resize();
     window.addEventListener('resize', resize);
 
+    const isMobile = window.innerWidth < 768;
+
     function initParticles() {
       particles = [];
-      const count = Math.min(Math.floor(window.innerWidth / 14), 100);
+      const count = isMobile
+        ? Math.min(Math.floor(window.innerWidth / 30), 30)
+        : Math.min(Math.floor(window.innerWidth / 14), 100);
       for (let i = 0; i < count; i++) {
         particles.push({
           x: Math.random() * canvas.width,
