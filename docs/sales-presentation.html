@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Content Hub Pro — Sales Playbook</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #09090f;
+      --s1:       #111118;
+      --border:   rgba(255,255,255,0.07);
+      --text:     #f1f5f9;
+      --muted:    #8892a4;
+      --gold:     #f59e0b;
+      --gold2:    #fbbf24;
+      --orange:   #f97316;
+      --red:      #ef4444;
+      --green:    #10b981;
+      --blue:     #3b82f6;
+      --purple:   #8b5cf6;
+      --surface:  rgba(255,255,255,0.04);
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    html,body{
+      width:100%;height:100%;
+      font-family:'Inter',sans-serif;
+      background:var(--bg);color:var(--text);
+      overflow:hidden;
+      -webkit-text-size-adjust:100%;
+    }
+    @supports(-webkit-touch-callout:none){html,body{height:-webkit-fill-available;}}
+
+    /* ── Progress ── */
+    #bar{
+      position:fixed;top:0;left:0;height:3px;width:0%;z-index:100;
+      background:linear-gradient(90deg,var(--gold),var(--orange));
+      transition:width .5s ease;
+      box-shadow:0 0 10px var(--gold);
+    }
+
+    /* ── Deck ── */
+    #deck{
+      position:fixed;top:0;left:0;right:0;
+      bottom:58px;
+      z-index:10;
+      overflow:hidden;
+    }
+    @supports(-webkit-touch-callout:none){#deck{bottom:64px;}}
+
+    /* ── Slides ── */
+    .slide{
+      position:absolute;inset:0;
+      display:flex;flex-direction:column;
+      padding:48px 18px 16px;
+      opacity:0;pointer-events:none;
+      overflow-y:auto;overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+    }
+    .slide.active{opacity:1;pointer-events:all;z-index:20;}
+
+    /* Transitions */
+    .slide.enter-r{animation:enR .55s cubic-bezier(.4,0,.2,1) forwards;}
+    .slide.enter-l{animation:enL .55s cubic-bezier(.4,0,.2,1) forwards;}
+    .slide.leave-r{animation:lvR .55s cubic-bezier(.4,0,.2,1) forwards;}
+    .slide.leave-l{animation:lvL .55s cubic-bezier(.4,0,.2,1) forwards;}
+    @keyframes enR{from{opacity:0;transform:translateX(60px) scale(.97)}to{opacity:1;transform:none}}
+    @keyframes enL{from{opacity:0;transform:translateX(-60px) scale(.97)}to{opacity:1;transform:none}}
+    @keyframes lvR{from{opacity:1;transform:none}to{opacity:0;transform:translateX(-60px) scale(.97)}}
+    @keyframes lvL{from{opacity:1;transform:none}to{opacity:0;transform:translateX(60px) scale(.97)}}
+
+    /* Stagger */
+    @keyframes up{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+    .slide.active .s{animation:up .45s ease forwards;opacity:0;}
+    .slide.active .s:nth-child(1){animation-delay:.05s}
+    .slide.active .s:nth-child(2){animation-delay:.12s}
+    .slide.active .s:nth-child(3){animation-delay:.19s}
+    .slide.active .s:nth-child(4){animation-delay:.26s}
+    .slide.active .s:nth-child(5){animation-delay:.33s}
+    .slide.active .s:nth-child(6){animation-delay:.40s}
+    .slide.active .s:nth-child(7){animation-delay:.47s}
+    .slide.active .s:nth-child(8){animation-delay:.54s}
+    .slide.active .s:nth-child(9){animation-delay:.61s}
+
+    /* ── Cover slide ── */
+    .slide.cover{justify-content:center;align-items:center;text-align:center;padding:48px 20px 80px;}
+    .cover-logo{font-size:3rem;margin-bottom:8px;}
+    .cover-title{
+      font-size:clamp(1.9rem,7vw,3rem);
+      font-weight:900;line-height:1.05;
+      letter-spacing:-.03em;
+      background:linear-gradient(135deg,#fff 30%,var(--gold2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .cover-sub{font-size:.9rem;color:var(--muted);margin-top:10px;line-height:1.6;}
+    .cover-badges{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:18px;}
+
+    /* ── Typography ── */
+    .eyebrow{
+      font-size:.62rem;font-weight:700;letter-spacing:.14em;
+      text-transform:uppercase;color:var(--gold);margin-bottom:6px;
+    }
+    h2.title{
+      font-size:1.25rem;font-weight:800;line-height:1.2;
+      color:var(--text);margin-bottom:12px;
+    }
+    h2.title span{
+      background:linear-gradient(90deg,var(--gold),var(--orange));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .lead{font-size:.85rem;color:var(--muted);line-height:1.65;margin-bottom:10px;}
+
+    /* ── Section label ── */
+    .section-pill{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);
+      color:var(--gold2);font-size:.68rem;font-weight:700;
+      padding:4px 10px;border-radius:99px;margin-bottom:8px;
+      letter-spacing:.06em;text-transform:uppercase;
+    }
+
+    /* ── Cards ── */
+    .cards{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
+    .card{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:12px;padding:12px 14px;
+      display:flex;align-items:flex-start;gap:10px;
+    }
+    .card:hover{border-color:rgba(245,158,11,.3);}
+    .card .icon{font-size:1.3rem;flex-shrink:0;line-height:1;}
+    .card .body{}
+    .card h4{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+    .card p{font-size:.78rem;color:var(--muted);line-height:1.5;}
+    /* 2-col grid for small cards */
+    .cards.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+    .cards.grid2 .card{flex-direction:column;align-items:flex-start;}
+    .cards.grid2 .card .icon{margin-bottom:4px;}
+
+    /* ── Script box ── */
+    .script{
+      background:rgba(0,0,0,.5);
+      border:1px solid var(--border);
+      border-left:3px solid var(--gold);
+      border-radius:10px;
+      padding:14px 16px;
+      margin-top:8px;
+      font-size:.8rem;
+      color:#cbd5e1;
+      line-height:1.75;
+      position:relative;
+    }
+    .script .tag{
+      position:absolute;top:-1px;right:10px;
+      background:var(--gold);color:#000;
+      font-size:.6rem;font-weight:800;
+      padding:2px 8px;border-radius:0 0 6px 6px;
+      letter-spacing:.06em;text-transform:uppercase;
+    }
+    .script b{color:var(--gold2);}
+    .script em{color:var(--orange);font-style:normal;}
+    .script .speaker{color:var(--gold);font-weight:700;font-size:.72rem;margin-top:8px;display:block;}
+
+    /* ── Steps ── */
+    .steps{display:flex;flex-direction:column;gap:0;margin-top:8px;}
+    .step{
+      display:flex;gap:14px;padding:12px 0;
+      border-bottom:1px solid var(--border);
+    }
+    .step:last-child{border-bottom:none;}
+    .step-num{
+      width:28px;height:28px;border-radius:50%;
+      background:linear-gradient(135deg,var(--gold),var(--orange));
+      color:#000;font-weight:900;font-size:.8rem;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;
+    }
+    .step-body{}
+    .step-body h4{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:2px;}
+    .step-body p{font-size:.77rem;color:var(--muted);line-height:1.5;}
+
+    /* ── Stat row ── */
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+    .stat{
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:12px;padding:12px 8px;text-align:center;
+    }
+    .stat .n{
+      font-size:1.5rem;font-weight:900;
+      background:linear-gradient(135deg,var(--gold),var(--orange));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      background-clip:text;
+    }
+    .stat .l{font-size:.68rem;color:var(--muted);margin-top:2px;}
+
+    /* ── Checklist ── */
+    .check{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+    .check-item{
+      display:flex;align-items:flex-start;gap:10px;
+      background:var(--surface);border:1px solid var(--border);
+      border-radius:10px;padding:10px 12px;
+      font-size:.8rem;color:var(--muted);line-height:1.5;
+    }
+    .check-item .ck{
+      width:18px;height:18px;border-radius:4px;
+      background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);
+      color:var(--green);font-size:.75rem;
+      display:flex;align-items:center;justify-content:center;
+      flex-shrink:0;margin-top:1px;
+    }
+    .check-item strong{color:var(--text);}
+
+    /* ── Objection box ── */
+    .obj{
+      background:rgba(239,68,68,.06);
+      border:1px solid rgba(239,68,68,.25);
+      border-radius:10px;padding:10px 14px;
+      margin-bottom:8px;
+    }
+    .obj .q{font-size:.78rem;color:var(--red);font-weight:700;margin-bottom:5px;}
+    .obj .a{font-size:.78rem;color:var(--muted);line-height:1.55;}
+    .obj .a b{color:var(--gold2);}
+
+    /* ── Table ── */
+    .tbl{border-radius:10px;overflow:hidden;border:1px solid var(--border);margin-top:8px;}
+    table{width:100%;border-collapse:collapse;}
+    thead th{
+      background:rgba(245,158,11,.15);color:var(--gold2);
+      font-size:.72rem;font-weight:700;text-align:left;
+      padding:9px 11px;letter-spacing:.04em;text-transform:uppercase;
+    }
+    tbody tr{border-top:1px solid var(--border);}
+    tbody tr:hover{background:rgba(255,255,255,.03);}
+    tbody td{padding:9px 11px;font-size:.78rem;color:var(--muted);}
+    tbody td:first-child{color:var(--text);font-weight:600;}
+
+    /* ── Timeline ── */
+    .timeline{position:relative;padding-left:28px;margin-top:8px;}
+    .timeline::before{
+      content:'';position:absolute;left:8px;top:4px;bottom:4px;
+      width:2px;background:linear-gradient(to bottom,var(--gold),var(--orange));opacity:.4;
+    }
+    .tl{margin-bottom:14px;position:relative;}
+    .tl::before{
+      content:'';position:absolute;left:-25px;top:4px;
+      width:10px;height:10px;border-radius:50%;
+      background:var(--gold);
+      box-shadow:0 0 8px var(--gold);
+    }
+    .tl-h{font-size:.82rem;font-weight:700;color:var(--text);}
+    .tl-s{font-size:.75rem;color:var(--gold);margin-bottom:2px;font-weight:600;}
+    .tl-d{font-size:.76rem;color:var(--muted);line-height:1.5;margin-top:2px;}
+
+    /* ── Pill badges ── */
+    .pill{
+      display:inline-flex;align-items:center;gap:4px;
+      padding:3px 10px;border-radius:99px;
+      font-size:.7rem;font-weight:700;
+    }
+    .pill-gold  {background:rgba(245,158,11,.15);color:var(--gold2);border:1px solid rgba(245,158,11,.3);}
+    .pill-green {background:rgba(16,185,129,.15); color:#6ee7b7;    border:1px solid rgba(16,185,129,.3);}
+    .pill-red   {background:rgba(239,68,68,.15);  color:#fca5a5;    border:1px solid rgba(239,68,68,.3);}
+    .pill-blue  {background:rgba(59,130,246,.15); color:#93c5fd;    border:1px solid rgba(59,130,246,.3);}
+    .pill-purple{background:rgba(139,92,246,.15); color:#c4b5fd;    border:1px solid rgba(139,92,246,.3);}
+
+    /* ── Highlight quote ── */
+    .quote{
+      border-left:3px solid var(--gold);
+      background:rgba(245,158,11,.05);
+      border-radius:0 10px 10px 0;
+      padding:12px 14px;margin-top:10px;
+      font-size:.85rem;font-style:italic;color:var(--text);line-height:1.65;
+    }
+    .quote cite{display:block;font-size:.72rem;color:var(--gold);font-style:normal;margin-top:6px;font-weight:600;}
+
+    /* ── KPI row ── */
+    .kpis{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+    .kpi{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;}
+    .kpi .kn{font-size:1.1rem;font-weight:800;color:var(--gold2);min-width:52px;}
+    .kpi .kl{font-size:.78rem;color:var(--muted);line-height:1.4;}
+    .kpi .kl b{color:var(--text);}
+
+    /* ── Nav ── */
+    #nav{
+      position:fixed;bottom:max(10px,env(safe-area-inset-bottom,8px));
+      left:50%;transform:translateX(-50%);
+      z-index:50;
+      display:flex;align-items:center;gap:10px;
+      background:rgba(9,9,15,.92);
+      backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+      border:1px solid var(--border);
+      border-radius:60px;padding:7px 14px;
+      box-shadow:0 4px 24px rgba(0,0,0,.6);
+      white-space:nowrap;
+    }
+    .nb{
+      background:none;border:1px solid var(--border);
+      color:var(--muted);width:30px;height:30px;
+      border-radius:50%;cursor:pointer;font-size:.9rem;
+      display:flex;align-items:center;justify-content:center;
+      transition:all .2s;
+    }
+    .nb:hover:not(:disabled){border-color:var(--gold);color:var(--gold);}
+    .nb:disabled{opacity:.2;cursor:not-allowed;}
+    #ctr{font-size:.65rem;color:var(--muted);font-weight:600;min-width:34px;text-align:center;}
+    #dots{display:flex;gap:4px;align-items:center;}
+    .dot{
+      width:5px;height:5px;border-radius:50%;
+      background:rgba(255,255,255,.15);cursor:pointer;transition:all .25s;
+    }
+    .dot.active{background:var(--gold);width:14px;border-radius:99px;box-shadow:0 0 6px var(--gold);}
+
+    /* ── Corner labels ── */
+    #ctag{
+      position:fixed;top:10px;left:12px;z-index:50;
+      font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--gold);background:rgba(245,158,11,.1);
+      border:1px solid rgba(245,158,11,.2);
+      padding:3px 9px;border-radius:99px;
+      max-width:44vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    #clbl{
+      position:fixed;top:10px;right:12px;z-index:50;
+      font-size:.58rem;font-weight:600;color:var(--muted);
+      background:rgba(255,255,255,.05);border:1px solid var(--border);
+      padding:3px 9px;border-radius:99px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="bar"></div>
+<div id="ctag">Intro</div>
+<div id="clbl">01 / 20</div>
+
+<div id="deck">
+
+  <!-- ▓ 01 COVER ▓ -->
+  <div class="slide cover active" data-tag="Sales Playbook">
+    <div class="cover-logo s">💰</div>
+    <div class="cover-title s">Sales Playbook</div>
+    <div class="cover-title s" style="-webkit-text-fill-color:var(--gold);color:var(--gold);font-size:clamp(1.3rem,5vw,2rem);">Content Hub Pro</div>
+    <p class="cover-sub s">Verkaufsstrategien · Skripte · Planung<br>Marketing · Abschluss-Techniken</p>
+    <div class="cover-badges s">
+      <span class="pill pill-gold">🎯 B2B Agentur-Sales</span>
+      <span class="pill pill-green">✅ Praxis-ready</span>
+      <span class="pill pill-blue">📱 Mobile-First</span>
+    </div>
+  </div>
+
+  <!-- ▓ 02 ZIELGRUPPE ▓ -->
+  <div class="slide" data-tag="Zielgruppe">
+    <div class="eyebrow s">01 · ICP — Ideal Customer Profile</div>
+    <h2 class="title s">Unsere <span>Zielgruppe</span></h2>
+    <div class="cards s">
+      <div class="card">
+        <div class="icon">🏢</div>
+        <div class="body">
+          <h4>Marketing-Agenturen</h4>
+          <p>5–50 Mitarbeiter · 10–50 aktive Kunden · Social + SEO Leistungen</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="icon">😤</div>
+        <div class="body">
+          <h4>Pain Point: Tool-Chaos</h4>
+          <p>Nutzen 5–8 Tools parallel. Kein zentrales Freigabe-System. KI separat.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="icon">💶</div>
+        <div class="body">
+          <h4>Budget & Entscheider</h4>
+          <p>€200–2.000/Monat SaaS-Budget · Entscheider = Geschäftsführer oder Head of</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="icon">🌍</div>
+        <div class="body">
+          <h4>Markt DACH</h4>
+          <p>15.000+ Marketing-Agenturen in DE/AT/CH. Primär digital-affin.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 03 VERKAUFSSTRATEGIE ▓ -->
+  <div class="slide" data-tag="Verkaufsstrategie">
+    <div class="eyebrow s">02 · Go-to-Market</div>
+    <h2 class="title s"><span>Verkaufsstrategie</span> — 3-Kanal-Modell</h2>
+    <div class="cards s">
+      <div class="card" style="border-color:rgba(245,158,11,.3);">
+        <div class="icon">📲</div>
+        <div class="body">
+          <h4>Inbound (Content-Led)</h4>
+          <p>LinkedIn Posts, YouTube Demos, SEO-Blog → kostenloser Testzugang → Conversion</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(249,115,22,.3);">
+        <div class="icon">📞</div>
+        <div class="body">
+          <h4>Outbound (Cold Outreach)</h4>
+          <p>LinkedIn DM + E-Mail-Sequenz an Agentur-GFs → Demo-Call → Abschluss</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(139,92,246,.3);">
+        <div class="icon">🤝</div>
+        <div class="body">
+          <h4>Partner (Referral)</h4>
+          <p>Bestandskunden empfehlen → 20% Provision auf erste 3 Monate</p>
+        </div>
+      </div>
+    </div>
+    <div class="stats s" style="margin-top:12px;">
+      <div class="stat"><div class="n">30%</div><div class="l">Inbound Ziel</div></div>
+      <div class="stat"><div class="n">50%</div><div class="l">Outbound Ziel</div></div>
+      <div class="stat"><div class="n">20%</div><div class="l">Referral Ziel</div></div>
+    </div>
+  </div>
+
+  <!-- ▓ 04 VERKAUFSPROZESS ▓ -->
+  <div class="slide" data-tag="Verkaufsprozess">
+    <div class="eyebrow s">03 · Pipeline</div>
+    <h2 class="title s">Der <span>Verkaufsprozess</span> (6 Phasen)</h2>
+    <div class="steps s">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body"><h4>Prospecting</h4><p>ICP-Agenturen identifizieren via LinkedIn, Google, Agenturrankings</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body"><h4>Erstkontakt</h4><p>Personalisierte DM oder E-Mail — Problem ansprechen, nicht pitchen</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body"><h4>Discovery Call (20 Min)</h4><p>Pain Points verstehen, Qualifikation prüfen, Demo vereinbaren</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body"><h4>Demo (30 Min)</h4><p>Live-Demo angepasst auf ihre Use Cases — Viral Analyzer, Kanban, KI</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body"><h4>Angebot + Trial</h4><p>14-Tage kostenloser Test + maßgeschneidertes Angebot versenden</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body"><h4>Abschluss + Onboarding</h4><p>Vertrag unterschreiben, Onboarding-Call buchen, Erfolge feiern 🎉</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 05 ELEVATOR PITCH ▓ -->
+  <div class="slide" data-tag="Elevator Pitch">
+    <div class="eyebrow s">04 · Skript</div>
+    <h2 class="title s"><span>Elevator Pitch</span> — 30 Sekunden</h2>
+    <div class="script s">
+      <div class="tag">SKRIPT</div>
+      <p>„<b>Stell dir vor</b>, du managst 20 Kunden — Posts, Artikel, Freigaben, KI-Texte — alles in <em>einer App</em>, ohne zwischen 6 Tools zu wechseln."</p>
+      <br>
+      <p>„Genau das macht <b>Content Hub Pro</b>: ein Kanban-Board für Social Media, KI-generierte SEO-Artikel, und ein <em>Kunden-Portal für Freigaben</em> — komplett in Echtzeit."</p>
+      <br>
+      <p>„Magst du kurz sehen, wie das für deine Agentur aussehen würde?"</p>
+    </div>
+    <div class="quote s">
+      💡 Immer mit einer Frage abschließen — nie mit einer Aussage!
+      <cite>— Sales-Grundregel #1</cite>
+    </div>
+  </div>
+
+  <!-- ▓ 06 COLD OUTREACH ▓ -->
+  <div class="slide" data-tag="Cold Outreach">
+    <div class="eyebrow s">05 · Skript</div>
+    <h2 class="title s"><span>Cold DM</span> — LinkedIn Nachricht</h2>
+    <div class="script s">
+      <div class="tag">LINKEDIN DM</div>
+      <p>Hi [Name] 👋</p><br>
+      <p>Ich habe gesehen, dass [Agenturname] stark im Social-Media-Bereich ist — <b>beeindruckende Arbeit!</b></p><br>
+      <p>Ich frage mich: Wie viele Tools nutzt dein Team aktuell für Posts, Freigaben und SEO-Content?</p><br>
+      <p>Wir haben eine Plattform gebaut, die das in <em>einer App</em> zusammenfasst — inklusive KI.</p><br>
+      <p>Wäre ein <b>15-Minuten-Call</b> nächste Woche sinnvoll?</p>
+    </div>
+    <div class="script s" style="margin-top:10px;border-left-color:var(--orange);">
+      <div class="tag" style="background:var(--orange);">E-MAIL BETREFF</div>
+      <p><b>Option A:</b> „Wie [Konkurrent] 40% weniger Zeit für Content-Freigaben braucht"</p><br>
+      <p><b>Option B:</b> „Tool-Chaos in Agenturen — kennt ihr das?"</p><br>
+      <p><b>Option C:</b> „KI-Content direkt ins Kunden-Freigabe-System?"</p>
+    </div>
+  </div>
+
+  <!-- ▓ 07 DISCOVERY CALL ▓ -->
+  <div class="slide" data-tag="Discovery Call">
+    <div class="eyebrow s">06 · Skript</div>
+    <h2 class="title s"><span>Discovery Call</span> — Fragenführer</h2>
+    <div class="check s">
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Wie viele Kunden</strong> betreut ihr aktuell gleichzeitig?"</div>
+      </div>
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Welche Tools</strong> nutzt ihr für Social, SEO und Freigaben?"</div>
+      </div>
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Wie läuft aktuell</strong> der Freigabeprozess mit euren Kunden?"</div>
+      </div>
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Was kostet euch</strong> der manuelle Aufwand wöchentlich in Stunden?"</div>
+      </div>
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Nutzt ihr schon</strong> KI für Content-Erstellung — wenn ja, wie?"</div>
+      </div>
+      <div class="check-item">
+        <div class="ck">?</div>
+        <div>„<strong>Was müsste eine Lösung</strong> können, damit ihr sofort wechselt?"</div>
+      </div>
+    </div>
+    <div class="quote s">
+      🎯 Zuhören = 80%, Reden = 20%.<br>Jede Antwort notieren — wird in der Demo verwendet.
+    </div>
+  </div>
+
+  <!-- ▓ 08 DEMO SCRIPT ▓ -->
+  <div class="slide" data-tag="Demo Script">
+    <div class="eyebrow s">07 · Skript</div>
+    <h2 class="title s"><span>Demo Script</span> — 30 Minuten</h2>
+    <div class="steps s">
+      <div class="step">
+        <div class="step-num">0'</div>
+        <div class="step-body"><h4>Opener (2 Min)</h4><p>„Ich zeige euch heute genau das, was ihr vorhin beschrieben habt: [Pain Point wiederholen]"</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2'</div>
+        <div class="step-body"><h4>Social Hub (8 Min)</h4><p>Kanban live zeigen → Post erstellen → direkt KI-Caption generieren → Kunde bekommt Freigabe-Link</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">10'</div>
+        <div class="step-body"><h4>Viral Analyzer (6 Min)</h4><p>Bild hochladen → Score 87/100 → 3 Captions → 20 Hashtags → direkt übernehmen</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">16'</div>
+        <div class="step-body"><h4>SEO + KI (6 Min)</h4><p>Keyword eingeben → vollständiger Artikel in 20 Sek. → SEO Score 84 → direkt bearbeiten</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">22'</div>
+        <div class="step-body"><h4>Kunden-Portal (4 Min)</h4><p>Kunden-Login zeigen → sie sehen nur eigene Posts → Freigabe per Klick → Agentur wird benachrichtigt</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">26'</div>
+        <div class="step-body"><h4>Fragen + Close (4 Min)</h4><p>„Was hat euch am meisten überrascht?" → Trial anbieten → nächsten Schritt definieren</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 09 EINWÄNDE ▓ -->
+  <div class="slide" data-tag="Einwandbehandlung">
+    <div class="eyebrow s">08 · Skript</div>
+    <h2 class="title s"><span>Einwandbehandlung</span></h2>
+    <div class="s">
+      <div class="obj">
+        <div class="q">❌ „Zu teuer für uns"</div>
+        <div class="a">„Wie viele Stunden verliert euer Team monatlich durch Tool-Wechsel und manuelle Freigaben? Bei 10h/Woche sind das <b>40h × Stundensatz</b> — vs. unser Preis."</div>
+      </div>
+      <div class="obj">
+        <div class="q">❌ „Wir nutzen schon [Tool X]"</div>
+        <div class="a">„Perfekt! Was fehlt euch bei [Tool X]? … Genau das ist, was wir anders machen: <b>alles in einer Plattform</b> — Social, SEO und Kunden-Portal kombiniert."</div>
+      </div>
+      <div class="obj">
+        <div class="q">❌ „Keine Zeit für Einarbeitung"</div>
+        <div class="a">„Verstehe. Deshalb bieten wir ein <b>persönliches Onboarding in 45 Minuten</b> — euer Team ist danach sofort produktiv. Kein Selbststudium."</div>
+      </div>
+      <div class="obj">
+        <div class="q">❌ „Wir müssen das intern besprechen"</div>
+        <div class="a">„Natürlich! Wen sollte ich dabei haben für den <b>Entscheider-Call</b>? Ich schicke euch einen 14-Tage-Testzugang — dann habt ihr konkrete Zahlen zum Besprechen."</div>
+      </div>
+      <div class="obj">
+        <div class="q">❌ „Wir sind gerade nicht wechselbereit"</div>
+        <div class="a">„<b>Kein Druck.</b> Darf ich in 3 Monaten nochmal melden? Bis dahin schicke ich euch unsere Case Studies — damit ihr seht, wie andere Agenturen 8h/Woche sparen."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 10 ABSCHLUSS-TECHNIKEN ▓ -->
+  <div class="slide" data-tag="Closing">
+    <div class="eyebrow s">09 · Skript</div>
+    <h2 class="title s"><span>Abschluss</span>-Techniken</h2>
+    <div class="cards s">
+      <div class="card" style="border-color:rgba(245,158,11,.3);">
+        <div class="icon">⏰</div>
+        <div class="body">
+          <h4>Trial Close</h4>
+          <p>„Wenn der Test das hält, was wir gezeigt haben — seid ihr dann bereit, direkt zu starten?"</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(16,185,129,.3);">
+        <div class="icon">🎁</div>
+        <div class="body">
+          <h4>Scarcity Close</h4>
+          <p>„Wir bieten aktuell Onboarding-Support für max. 5 Neukunden pro Monat — ihr wärt dabei."</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(59,130,246,.3);">
+        <div class="icon">📋</div>
+        <div class="body">
+          <h4>Summary Close</h4>
+          <p>„Ihr bekommt: Social Hub, SEO-KI, Kunden-Portal, Onboarding — für €[X]/Monat. Sollen wir loslegen?"</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(249,115,22,.3);">
+        <div class="icon">🔄</div>
+        <div class="body">
+          <h4>Alternative Close</h4>
+          <p>„Lieber Monats- oder Jahresplan? — Jahresplan spart euch 2 Monate."</p>
+        </div>
+      </div>
+    </div>
+    <div class="script s" style="margin-top:10px;">
+      <div class="tag">GOLDEN RULE</div>
+      <p>Nach dem Angebot → <b>Mund halten.</b> Wer zuerst spricht, verliert. Stille ist kein Problem — es ist Nachdenken.</p>
+    </div>
+  </div>
+
+  <!-- ▓ 11 FOLLOW-UP ▓ -->
+  <div class="slide" data-tag="Follow-Up">
+    <div class="eyebrow s">10 · Skript</div>
+    <h2 class="title s"><span>Follow-Up</span> Sequenz</h2>
+    <div class="timeline s">
+      <div class="tl">
+        <div class="tl-s">Tag 0 — nach Demo</div>
+        <div class="tl-h">Dankes-E-Mail + Zusammenfassung</div>
+        <div class="tl-d">„Danke für eure Zeit! Hier sind die 3 Punkte, die ihr erwähnt habt + wie CHP das löst. Trial-Link: [Link]"</div>
+      </div>
+      <div class="tl">
+        <div class="tl-s">Tag 2</div>
+        <div class="tl-h">Value-Add Mail</div>
+        <div class="tl-d">Case Study: „Wie [Agentur XY] mit CHP 35% weniger Zeit für Freigaben braucht"</div>
+      </div>
+      <div class="tl">
+        <div class="tl-s">Tag 5</div>
+        <div class="tl-h">Check-in DM (LinkedIn)</div>
+        <div class="tl-d">„Habt ihr schon in den Trial reingeschaut? Kann ich euch bei der Einrichtung helfen — 15 Min Screenshare?"</div>
+      </div>
+      <div class="tl">
+        <div class="tl-s">Tag 9</div>
+        <div class="tl-h">Entscheidungs-Mail</div>
+        <div class="tl-d">„Euer Trial läuft diese Woche aus. Soll ich ein Angebot schicken, oder ist das Timing gerade nicht richtig?"</div>
+      </div>
+      <div class="tl">
+        <div class="tl-s">Tag 14 — Trial Ende</div>
+        <div class="tl-h">Break-up Mail</div>
+        <div class="tl-d">„Ich nehme an, es ist gerade nicht der richtige Zeitpunkt. Darf ich mich in 3 Monaten melden?" → fast immer: Ja.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 12 MARKETINGSTRATEGIE ▓ -->
+  <div class="slide" data-tag="Marketingstrategie">
+    <div class="eyebrow s">11 · Marketing</div>
+    <h2 class="title s"><span>Marketingstrategie</span> — 4 Säulen</h2>
+    <div class="cards s">
+      <div class="card" style="border-color:rgba(59,130,246,.3);">
+        <div class="icon">💼</div>
+        <div class="body">
+          <h4>LinkedIn (Primär)</h4>
+          <p>3×/Woche: How-To Posts, Behind-the-Scenes, Tool-Vergleiche. Ziel: 1.000 Follower in Q1.</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(239,68,68,.3);">
+        <div class="icon">▶️</div>
+        <div class="body">
+          <h4>YouTube / Video</h4>
+          <p>Wöchentlich: 5-Min Demo-Videos. „Content Hub Pro vs. [Konkurrent]" → SEO Traffic.</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(16,185,129,.3);">
+        <div class="icon">📝</div>
+        <div class="body">
+          <h4>SEO Blog</h4>
+          <p>Keywords: „Social Media Tool Agenturen", „KI Content erstellen" → monatlich 2 Artikel.</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(245,158,11,.3);">
+        <div class="icon">📧</div>
+        <div class="body">
+          <h4>E-Mail Newsletter</h4>
+          <p>2×/Monat: Marketing-Tipps + CHP Feature-Updates. Ziel: 500 Subscriber in Q1.</p>
+        </div>
+      </div>
+    </div>
+    <div class="stats s" style="margin-top:10px;">
+      <div class="stat"><div class="n">3×</div><div class="l">LinkedIn/Woche</div></div>
+      <div class="stat"><div class="n">1×</div><div class="l">YouTube/Woche</div></div>
+      <div class="stat"><div class="n">2×</div><div class="l">Blog/Monat</div></div>
+    </div>
+  </div>
+
+  <!-- ▓ 13 CONTENT PLAN ▓ -->
+  <div class="slide" data-tag="Content Plan">
+    <div class="eyebrow s">12 · Marketing</div>
+    <h2 class="title s">Wöchentlicher <span>Content Plan</span></h2>
+    <div class="tbl s">
+      <table>
+        <thead><tr><th>Tag</th><th>Format</th><th>Thema</th></tr></thead>
+        <tbody>
+          <tr><td>Montag</td><td>LinkedIn Post</td><td>Tool-Tipp / How-To für Agenturen</td></tr>
+          <tr><td>Dienstag</td><td>Story / Reel</td><td>Behind-the-Scenes Demo-Video (60 Sek.)</td></tr>
+          <tr><td>Mittwoch</td><td>LinkedIn Post</td><td>Statistik / Pain-Point Umfrage</td></tr>
+          <tr><td>Donnerstag</td><td>YouTube Video</td><td>Feature-Walkthrough oder Vergleich</td></tr>
+          <tr><td>Freitag</td><td>LinkedIn Post</td><td>Case Study / Kundenerfolg</td></tr>
+          <tr><td>Sonntag</td><td>Newsletter</td><td>Wöchentlicher Marketing-Digest</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="quote s">
+      🔑 Jeder Content-Post = 1 CTA: Demo buchen, Trial starten oder Follow bekommen.
+    </div>
+  </div>
+
+  <!-- ▓ 14 PREISGESTALTUNG ▓ -->
+  <div class="slide" data-tag="Preisgestaltung">
+    <div class="eyebrow s">13 · Pricing</div>
+    <h2 class="title s"><span>Preisgestaltung</span> & Pakete</h2>
+    <div class="cards s">
+      <div class="card" style="border-color:rgba(255,255,255,.15);">
+        <div class="icon">🥉</div>
+        <div class="body">
+          <h4>Starter — €149/Monat</h4>
+          <p>Bis 5 Kunden · Social Hub + SEO · 1 Agentur-User · E-Mail Support</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.06);">
+        <div class="icon">🥇</div>
+        <div class="body">
+          <h4>Pro — €349/Monat ⭐ Empfohlen</h4>
+          <p>Bis 20 Kunden · Alle Module + KI · 5 Agentur-User · Priority Support</p>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(139,92,246,.4);">
+        <div class="icon">💎</div>
+        <div class="body">
+          <h4>Enterprise — €899/Monat</h4>
+          <p>Unbegrenzt Kunden · White-Label · Unbegrenzt User · Dedicated Manager</p>
+        </div>
+      </div>
+    </div>
+    <div class="cards grid2 s" style="margin-top:8px;">
+      <div class="card" style="border-color:rgba(16,185,129,.3);">
+        <div class="icon">✅</div>
+        <div class="body"><h4>Jahresplan</h4><p>-20% Rabatt = 2 Monate gratis</p></div>
+      </div>
+      <div class="card" style="border-color:rgba(59,130,246,.3);">
+        <div class="icon">🆓</div>
+        <div class="body"><h4>Trial</h4><p>14 Tage kostenlos · kein Abo</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 15 VERKAUFSPLANUNG ▓ -->
+  <div class="slide" data-tag="Verkaufsplanung">
+    <div class="eyebrow s">14 · Planung</div>
+    <h2 class="title s"><span>Verkaufsplanung</span> Q1 2026</h2>
+    <div class="tbl s">
+      <table>
+        <thead><tr><th>KPI</th><th>Jan</th><th>Feb</th><th>Mrz</th></tr></thead>
+        <tbody>
+          <tr><td>Outreach / Woche</td><td>30</td><td>50</td><td>80</td></tr>
+          <tr><td>Discovery Calls</td><td>8</td><td>15</td><td>25</td></tr>
+          <tr><td>Demos</td><td>4</td><td>8</td><td>14</td></tr>
+          <tr><td>Trial-Starts</td><td>3</td><td>6</td><td>10</td></tr>
+          <tr><td>Abschlüsse</td><td>1</td><td>3</td><td>5</td></tr>
+          <tr><td>MRR Ziel</td><td>€350</td><td>€1.400</td><td>€3.150</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stats s" style="margin-top:10px;">
+      <div class="stat"><div class="n">15%</div><div class="l">Demo→Close</div></div>
+      <div class="stat"><div class="n">60%</div><div class="l">Trial→Paid</div></div>
+      <div class="stat"><div class="n">€3.150</div><div class="l">Q1 MRR Ziel</div></div>
+    </div>
+  </div>
+
+  <!-- ▓ 16 WOCHENSTRATEGIE ▓ -->
+  <div class="slide" data-tag="Wochenroutine">
+    <div class="eyebrow s">15 · Routine</div>
+    <h2 class="title s">Tägliche <span>Verkaufsroutine</span></h2>
+    <div class="steps s">
+      <div class="step">
+        <div class="step-num">8h</div>
+        <div class="step-body"><h4>Prospecting (30 Min)</h4><p>10 neue ICP-Leads aus LinkedIn/Google raussuchen und in CRM eintragen</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">9h</div>
+        <div class="step-body"><h4>Outreach (60 Min)</h4><p>10 personalisierte DMs + 5 Follow-Up-Mails aus Sequenz</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">11h</div>
+        <div class="step-body"><h4>Calls Block</h4><p>Discovery & Demo Calls — immer in einem Block, keine Unterbrechungen</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">14h</div>
+        <div class="step-body"><h4>Content (30 Min)</h4><p>1 LinkedIn Post erstellen + schedulen mit Content Hub Pro selbst nutzen</p></div>
+      </div>
+      <div class="step">
+        <div class="step-num">17h</div>
+        <div class="step-body"><h4>CRM Update (15 Min)</h4><p>Alle Gespräche dokumentieren, nächste Schritte setzen, Pipeline pflegen</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 17 KPIS ▓ -->
+  <div class="slide" data-tag="KPIs & Metriken">
+    <div class="eyebrow s">16 · Tracking</div>
+    <h2 class="title s"><span>KPIs</span> & Erfolgsmetriken</h2>
+    <div class="kpis s">
+      <div class="kpi">
+        <div class="kn">MRR</div>
+        <div class="kl"><b>Monthly Recurring Revenue</b> — monatliches Abo-Umsatzziel</div>
+      </div>
+      <div class="kpi">
+        <div class="kn">CAC</div>
+        <div class="kl"><b>Cost per Acquired Customer</b> — Ziel: unter €200</div>
+      </div>
+      <div class="kpi">
+        <div class="kn">LTV</div>
+        <div class="kl"><b>Lifetime Value</b> — ⌀ 18 Monate × €349 = <b>€6.282</b></div>
+      </div>
+      <div class="kpi">
+        <div class="kn">Churn</div>
+        <div class="kl"><b>Kündigungsrate</b> — Ziel: unter 5%/Monat</div>
+      </div>
+      <div class="kpi">
+        <div class="kn">NPS</div>
+        <div class="kl"><b>Net Promoter Score</b> — Kundenzufriedenheit messen, Ziel: 60+</div>
+      </div>
+      <div class="kpi">
+        <div class="kn">CVR</div>
+        <div class="kl"><b>Trial-to-Paid Conversion</b> — Ziel: 60% der Trials zahlen</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 18 TOOL-STACK ▓ -->
+  <div class="slide" data-tag="Tool-Stack">
+    <div class="eyebrow s">17 · Tools</div>
+    <h2 class="title s">Sales <span>Tool-Stack</span></h2>
+    <div class="cards s">
+      <div class="card">
+        <div class="icon">📋</div>
+        <div class="body"><h4>CRM — HubSpot Free</h4><p>Pipeline, Deals, Follow-Up-Sequenzen, E-Mail-Tracking</p></div>
+      </div>
+      <div class="card">
+        <div class="icon">💼</div>
+        <div class="body"><h4>Outreach — LinkedIn Sales Nav</h4><p>ICP-Suche, Lead-Listen, InMail-Kontingent</p></div>
+      </div>
+      <div class="card">
+        <div class="icon">📧</div>
+        <div class="body"><h4>E-Mail — Lemlist / Instantly</h4><p>Cold-E-Mail-Sequenzen mit Personalisierung + Tracking</p></div>
+      </div>
+      <div class="card">
+        <div class="icon">📹</div>
+        <div class="body"><h4>Demo — Loom + Calendly</h4><p>Video-Demos aufnehmen + Meeting-Buchungslink teilen</p></div>
+      </div>
+      <div class="card">
+        <div class="icon">📊</div>
+        <div class="body"><h4>Analytics — Google Analytics + CHP</h4><p>Website-Traffic + eigenes Dashboard für Post-Performance</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ▓ 19 ONBOARDING ▓ -->
+  <div class="slide" data-tag="Onboarding">
+    <div class="eyebrow s">18 · Nach dem Abschluss</div>
+    <h2 class="title s"><span>Onboarding</span> Checkliste</h2>
+    <div class="check s">
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 1:</strong> Onboarding-Call (45 Min) — Account Setup, Team einladen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 2:</strong> Ersten Kunden anlegen, Kunden-Portal zeigen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 3:</strong> Ersten Post im Kanban erstellen + KI-Caption testen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 5:</strong> Ersten SEO-Artikel mit KI generieren + veröffentlichen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 7:</strong> Check-in Call — Fragen beantworten, Feedback holen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 14:</strong> Success Review — KPIs, NPS abfragen, Upsell prüfen</div></div>
+      <div class="check-item"><div class="ck">✓</div><div><strong>Tag 30:</strong> Case Study anfragen wenn Ergebnis gut → Referral bitten</div></div>
+    </div>
+  </div>
+
+  <!-- ▓ 20 ACTION PLAN ▓ -->
+  <div class="slide cover" data-tag="Action Plan">
+    <div class="cover-logo s">🚀</div>
+    <div class="cover-title s">Jetzt starten.</div>
+    <p class="cover-sub s" style="font-size:.9rem;max-width:320px;">Die beste Verkaufsstrategie bringt nichts ohne Ausführung.</p>
+    <div class="cards s" style="width:100%;margin-top:14px;text-align:left;">
+      <div class="card" style="border-color:rgba(245,158,11,.4);">
+        <div class="icon">1️⃣</div>
+        <div class="body"><h4>Heute</h4><p>10 ICP-Leads auf LinkedIn identifizieren → 5 DMs senden</p></div>
+      </div>
+      <div class="card" style="border-color:rgba(249,115,22,.4);">
+        <div class="icon">2️⃣</div>
+        <div class="body"><h4>Diese Woche</h4><p>3 Discovery Calls buchen + 1 LinkedIn Post posten</p></div>
+      </div>
+      <div class="card" style="border-color:rgba(16,185,129,.4);">
+        <div class="icon">3️⃣</div>
+        <div class="body"><h4>Diesen Monat</h4><p>Ersten zahlenden Kunden abschließen + Case Study starten</p></div>
+      </div>
+    </div>
+    <div class="cover-badges s" style="margin-top:14px;">
+      <span class="pill pill-gold">💰 Verkaufen ist ein System</span>
+      <span class="pill pill-green">✅ System = Ergebnis</span>
+    </div>
+  </div>
+
+</div><!-- #deck -->
+
+<!-- Nav -->
+<div id="nav">
+  <button class="nb" id="pb">&#8592;</button>
+  <div id="dots"></div>
+  <span id="ctr">01/20</span>
+  <button class="nb" id="nb2">&#8594;</button>
+</div>
+
+<script>
+  const slides  = Array.from(document.querySelectorAll('.slide'));
+  const dotsEl  = document.getElementById('dots');
+  const pb      = document.getElementById('pb');
+  const nb2     = document.getElementById('nb2');
+  const ctrEl   = document.getElementById('ctr');
+  const barEl   = document.getElementById('bar');
+  const ctagEl  = document.getElementById('ctag');
+  const clblEl  = document.getElementById('clbl');
+  const TOTAL   = slides.length;
+
+  let cur = 0, busy = false;
+
+  // Build dots
+  slides.forEach((_,i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===0?' active':'');
+    d.onclick = () => go(i);
+    dotsEl.appendChild(d);
+  });
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function ui(){
+    ctrEl.textContent = `${pad(cur+1)}/${pad(TOTAL)}`;
+    clblEl.textContent= `${pad(cur+1)} / ${pad(TOTAL)}`;
+    ctagEl.textContent= slides[cur].dataset.tag || '';
+    barEl.style.width = `${((cur+1)/TOTAL)*100}%`;
+    document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===cur));
+    pb.disabled  = cur===0;
+    nb2.disabled = cur===TOTAL-1;
+  }
+
+  function go(n){
+    if(busy || n===cur || n<0 || n>=TOTAL) return;
+    busy = true;
+    const dir = n > cur ? 'r' : 'l';
+    const out = slides[cur];
+    const inn = slides[n];
+
+    out.classList.remove('active');
+    out.classList.add(dir==='r'?'leave-r':'leave-l');
+
+    inn.classList.remove('enter-r','enter-l','leave-r','leave-l','active');
+    inn.classList.add(dir==='r'?'enter-r':'enter-l');
+    void inn.offsetWidth;
+    inn.classList.add('active');
+    inn.scrollTop = 0;
+
+    cur = n; ui();
+    setTimeout(()=>{ out.classList.remove('leave-r','leave-l'); inn.classList.remove('enter-r','enter-l'); busy=false; }, 600);
+  }
+
+  pb.onclick  = ()=> go(cur-1);
+  nb2.onclick = ()=> go(cur+1);
+
+  // Keyboard
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();go(cur+1);}
+    if(e.key==='ArrowLeft'){e.preventDefault();go(cur-1);}
+  });
+
+  // Touch swipe
+  let tx=0;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    const d=tx-e.changedTouches[0].clientX;
+    if(Math.abs(d)>45){ d>0?go(cur+1):go(cur-1); }
+  },{passive:true});
+
+  ui();
+</script>
+</body>
+</html>
