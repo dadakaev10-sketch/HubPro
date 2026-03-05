@@ -472,21 +472,22 @@
     /* ── Role columns ── */
     .role-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-      margin-top: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
     }
     .role-col {
       border-radius: 14px;
-      padding: 20px;
+      padding: 16px;
       border: 1px solid var(--border);
+      min-width: 0; /* prevent grid blowout */
     }
     .role-col.admin   { border-color: rgba(245,158,11,.3); background: rgba(245,158,11,.05); }
     .role-col.agency  { border-color: rgba(168,85,247,.3); background: rgba(168,85,247,.05); }
     .role-col.client  { border-color: rgba(6,182,212,.3);  background: rgba(6,182,212,.05); }
-    .role-col h3 { font-size: 1rem; font-weight: 800; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .role-col h3 { font-size: .9rem; font-weight: 800; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
     .role-col ul { list-style: none; }
-    .role-col li { font-size: .82rem; color: var(--muted); margin-bottom: 7px; padding-left: 16px; position: relative; }
+    .role-col li { font-size: .8rem; color: var(--muted); margin-bottom: 6px; padding-left: 14px; position: relative; line-height: 1.4; }
     .role-col li::before { content: '•'; position: absolute; left: 0; }
 
     /* ── Slide-specific covers ── */
@@ -884,36 +885,43 @@
     <div class="slide" data-tag="Rollen & Rechte">
       <p class="slide-eyebrow stagger">05 · Sicherheit</p>
       <h2 class="section-title stagger">Rollen &amp; <span>Zugriffskontrolle</span></h2>
-      <div class="role-grid stagger">
+
+      <div class="table-wrap stagger" style="margin-top:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Berechtigung</th>
+              <th>🟡 Admin</th>
+              <th>🟣 Agentur</th>
+              <th>🔵 Kunde</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Posts erstellen</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Artikel erstellen</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Posts freigeben</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Kommentare</td><td>✅</td><td>✅</td><td>✅</td></tr>
+            <tr><td>Discovery Tools</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Analytics</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>Client Management</td><td>✅</td><td>✅</td><td>❌</td></tr>
+            <tr><td>User Management</td><td>✅</td><td>❌</td><td>❌</td></tr>
+            <tr><td>Notifications löschen</td><td>✅</td><td>❌</td><td>❌</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="role-grid stagger" style="margin-top:14px;">
         <div class="role-col admin">
           <h3><span class="badge badge-yellow">Admin</span></h3>
-          <ul>
-            <li>✅ User Management</li>
-            <li>✅ Alle Posts & Artikel</li>
-            <li>✅ Client Management</li>
-            <li>✅ Alle Analytics & Reports</li>
-            <li>✅ Notifications löschen</li>
-          </ul>
+          <p style="font-size:.78rem;color:var(--muted);line-height:1.5;">Vollzugriff auf alle Module, User- und Client-Verwaltung</p>
         </div>
         <div class="role-col agency">
           <h3><span class="badge badge-purple">Agentur</span></h3>
-          <ul>
-            <li>✅ Posts/Artikel erstellen</li>
-            <li>✅ Discovery Tools</li>
-            <li>✅ Client Management</li>
-            <li>✅ Analytics lesen</li>
-            <li>❌ User Management</li>
-          </ul>
+          <p style="font-size:.78rem;color:var(--muted);line-height:1.5;">Content-Erstellung, KI-Tools, Analytics — kein User-Mgmt</p>
         </div>
         <div class="role-col client">
           <h3><span class="badge badge-cyan">Kunde</span></h3>
-          <ul>
-            <li>✅ Eigene Inhalte freigeben</li>
-            <li>✅ Kommentare schreiben</li>
-            <li>✅ Client Portal Read-only</li>
-            <li>❌ Neue Inhalte erstellen</li>
-            <li>❌ Analytics/Admin/Discovery</li>
-          </ul>
+          <p style="font-size:.78rem;color:var(--muted);line-height:1.5;">Nur eigene Inhalte freigeben & kommentieren (Read-only)</p>
         </div>
       </div>
     </div>
